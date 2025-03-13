@@ -7,13 +7,14 @@ Thumbs.db
 ai-ec-analytics/__pycache__/
 ai-ec-analytics/.venv/
 ai-ec-analytics/.mypy_cache/
+ai-ec-analytics/images/
 
 # Java Spring Boot İçin (backend/)
 backend/target/
 backend/.mvn/
 backend/mvnw*
 backend/*.log
-backend/resources/uploads/
+backend/resources/images/
 
 # Android Projesi İçin (mobile-app/)
 mobile-app/.gradle/

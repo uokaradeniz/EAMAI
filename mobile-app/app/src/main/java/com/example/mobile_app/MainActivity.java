@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -36,18 +37,33 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
-
+//    http://192.168.0.78:8080
+//    http://10.0.2.2:8080
+    public static final String URL = "http://192.168.0.78:8080";
     private PreviewView previewView;
     private ImageCapture imageCapture;
     private ExecutorService cameraExecutor;
     private Handler handler;
     private static final int REQUEST_CAMERA_PERMISSION = 100;
-    private static final int CAPTURE_INTERVAL = 5000;
+    private static final int CAPTURE_INTERVAL = 2000;
+    private static final int CAPTURE_COUNT = 2;
+    private static int captureCounter = 0;
+
+    UUID sessionId;
+
+    public static int getCaptureCounter() {
+        return captureCounter;
+    }
+
+    public static void setCaptureCounter(int captureCounter) {
+        MainActivity.captureCounter = captureCounter;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        sessionId = UUID.randomUUID();
 
         previewView = findViewById(R.id.previewView);
         cameraExecutor = Executors.newSingleThreadExecutor();
@@ -119,17 +135,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void uploadFile(byte[] byteArray) {
         OkHttpClient client = new OkHttpClient();
-
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", "image" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")) + ".jpg",
                         RequestBody.create(byteArray, MediaType.parse("image/jpeg")))
+                .addFormDataPart("sessionId", sessionId.toString())
                 .build();
 
         Request request = new Request.Builder()
-                .url("http://192.168.0.78:8080/api/upload")
+                .url(URL + "/api/uploadImage")
                 .post(requestBody)
                 .build();
+
+        captureCounter++;
 
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -140,7 +158,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 assert response.body() != null;
-                Log.d("Upload", "Response: " + response.body().string());
+                Log.d("Upload", "Capture Count: " + captureCounter + "Response: " + response.body().string());
+                if (captureCounter >= CAPTURE_COUNT) {
+                    finish();
+                }
             }
         });
     }
