@@ -1,38 +1,32 @@
-import logging
-from flask import Flask, request
 import os
 
-import emotiondetection
+import requests
+from flask import Flask, request
+
+from config import UPLOAD_FOLDER, logging
+
+from emotiondetection import predict_emotion
 
 app = Flask(__name__)
-
-UPLOAD_FOLDER = "images"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 logging.basicConfig(level=logging.INFO)
 
-@app.before_request
-def log_request_info():
-    logging.info(f"Request: {request.method} {request.url}")
-    logging.info(f"Headers: {request.headers}")
+@app.route('/processImages', methods=['POST'])
+def get_unprocessed_images():
+    if 'images' not in request.files:
+        return "No images part in the request", 400
 
-@app.route('/processImage', methods=['POST'])
-def get_unprocessed_image():
-    file = request.files['file']
+    files = request.files.getlist('images')
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
 
-    if file.filename == '':
-        return "Dosya adı geçersiz!", 400
+    for file in files:
+        if file.filename == '':
+            return "One or more files have no filename", 400
+        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(file_path)
+        logging.info(f"Saved image: {file_path}")
 
-    # Dosyayı kaydet
-    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(file_path)
-
-    return f"Dosya başarıyla kaydedildi: {file_path}", 200
-
-@app.route('/triggerProcessImage', methods=['GET'])
-def trigger_process_image():
-    emotiondetection.predict_emotion()
-    return "Image processing triggered", 200
-
+    return predict_emotion(), 200
 if __name__ == '__main__':
     app.run(debug=True)

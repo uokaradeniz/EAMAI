@@ -9,9 +9,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.util.List;
 
-import static com.uokaradeniz.backend.image.ImageService.UPLOAD_DIR;
-import static com.uokaradeniz.backend.image.ImageService.imageList;
-
 @RestController
 @RequestMapping("/api")
 public class ImageController {
@@ -26,21 +23,14 @@ public class ImageController {
     }
 
 
-    @PostMapping("/uploadImage")
-    public ResponseEntity<?> getImageFromUser(@RequestParam("file") MultipartFile file, @RequestParam("sessionId") String sessionId) {
+    @PostMapping("/uploadImages")
+    public ResponseEntity<?> getImagesFromUser(@RequestParam("images") List<MultipartFile> images, @RequestParam("sessionId") String sessionId) {
         try {
-            File savedImage = imageService.saveImage(file, sessionId);
-            return ResponseEntity.ok("Image retrieved successfully: " + savedImage.getAbsolutePath());
+            imageService.saveImagesAndProcess(images, sessionId);
+            return ResponseEntity.ok("Images retrieved successfully.");
         } catch (IOException e) {
-            log.error("Image couldn't be gathered: {}", e.getMessage());
-            return ResponseEntity.internalServerError().body("Image couldn't be gathered: " + e.getMessage());
+            log.error("Images couldn't be gathered: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body("Images couldn't be gathered: " + e.getMessage());
         }
-    }
-
-    @GetMapping("/testimages")
-    private ResponseEntity<?> getImageList() {
-        //todo get image properties from db
-//        imageService.loadImagesFromDirectory();
-        return ResponseEntity.ok("Image List: " + imageList);
     }
 }

@@ -29,26 +29,27 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    buildFeatures {
+        viewBinding = true
+    }
 }
 
 dependencies {
-    implementation(libs.camera.core)
-    implementation(libs.androidx.camera.camera2)
-    implementation(libs.androidx.camera.lifecycle.v150alpha03)
-    implementation(libs.androidx.camera.video)
-    implementation(libs.camera.view.v150alpha03)
-    implementation(libs.androidx.camera.mlkit.vision)
-    implementation(libs.androidx.camera.extensions)
+
     implementation(libs.appcompat)
     implementation(libs.material)
-    implementation(libs.activity)
     implementation(libs.constraintlayout)
+    implementation(libs.lifecycle.livedata.ktx)
+    implementation(libs.lifecycle.viewmodel.ktx)
+    implementation(libs.navigation.fragment)
+    implementation(libs.navigation.ui)
     implementation(libs.camera.view)
     implementation(libs.camera.lifecycle)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
-    implementation(platform(libs.okhttp.bom))
+    implementation(libs.androidx.camera.core)
+    implementation(libs.camera.camera2)
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
 }
