@@ -1,9 +1,8 @@
 import os
 
-import requests
 from flask import Flask, request
 
-from config import UPLOAD_FOLDER, logging
+from config import UPLOAD_FOLDER, logging, clear_upload_folder
 
 from emotiondetection import predict_emotion
 
@@ -13,6 +12,7 @@ logging.basicConfig(level=logging.INFO)
 
 @app.route('/processImages', methods=['POST'])
 def get_unprocessed_images():
+    clear_upload_folder()
     if 'images' not in request.files:
         return "No images part in the request", 400
 

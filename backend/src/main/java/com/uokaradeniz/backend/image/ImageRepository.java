@@ -12,4 +12,6 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
     List<Image> findImagesBySessionId(UUID sessionId);
 
     List<Image> findBySessionId(UUID sessionId);
+
+    List<Image> findImagesByName(String name);
 }

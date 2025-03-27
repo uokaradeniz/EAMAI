@@ -3,7 +3,6 @@ package com.uokaradeniz.backend.image;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.uokaradeniz.backend.utils.UsefulUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -19,21 +18,13 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
-
-import static org.apache.tomcat.util.http.fileupload.FileUtils.deleteDirectory;
 
 @Service
 @Slf4j
 public class ImageService {
-    static String UPLOAD_DIR = System.getProperty("user.dir") + "/resources/images";
     static final List<Image> imageList = new ArrayList<>();
     private final ImageRepository imageRepository;
     private final RestTemplate restTemplate;
@@ -41,44 +32,21 @@ public class ImageService {
     public ImageService(ImageRepository imageRepository, RestTemplate restTemplate) {
         this.imageRepository = imageRepository;
         this.restTemplate = restTemplate;
-//        UsefulUtils.cleanFolder(UPLOAD_DIR);
     }
 
     public void saveImagesAndProcess(List<MultipartFile> images, String sessionId) throws IOException {
-//        UsefulUtils.cleanFolder(UPLOAD_DIR);
         saveImages(images, sessionId);
         sendImagesToAIService(sessionId);
     }
 
     void saveImages(List<MultipartFile> images, String sessionId) throws IOException {
-//        File uploadDir = new File(UPLOAD_DIR);
-//        if (!uploadDir.exists()) uploadDir.mkdirs(); // Ensure directory exists
-
         for (MultipartFile image : images) {
-//            File savedImage = new File(uploadDir, Objects.requireNonNull(image.getOriginalFilename()));
-//            image.transferTo(savedImage);
-//            log.info("Image retrieved successfully: {}", savedImage.getAbsolutePath());
-            // Save image properties to the database
             byte[] imageData = image.getBytes();
             imageRepository.save(new Image(image.getOriginalFilename(), null, imageData, sessionId));
         }
 
-//        loadImagesFromDirectory(sessionId);
         log.info("Image List {}: {}", LocalDateTime.now(), imageList);
-//        sendImagesToAIService();
     }
-
-//    void loadImagesFromDirectory(String sessionId) {
-//        imageList.clear();
-//        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(UPLOAD_DIR), "*.{jpg,jpeg,png}")) {
-//            for (Path entry : stream) {
-//                File file = entry.toFile();
-//                imageList.add(new Image(file.getName(), file.getAbsolutePath(), Files.readAllBytes(file.toPath()), sessionId));
-//            }
-//        } catch (IOException e) {
-//            log.error("Error reading images from directory: {}", e.getMessage());
-//        }
-//    }
 
     @Async
     void sendImagesToAIService(String sessionId) {
@@ -108,17 +76,17 @@ public class ImageService {
 
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            List<ResponseObject> responseList = objectMapper.readValue(response.getBody(), new TypeReference<>() {});
+            List<ResponseObject> responseList = objectMapper.readValue(response.getBody(), new TypeReference<>() {
+            });
             for (ResponseObject responseObject : responseList) {
-                String imagePath = responseObject.getImage();
+                String imageName = responseObject.getImage();
                 String emotion = responseObject.getEmotion();
 
-                images.stream()
-                        .filter(image -> image.getPath().equals(imagePath))
-                        .forEach(image -> {
-                            image.setProcessResult(emotion);
-                            imageRepository.save(image);
-                        });
+                imageRepository.findImagesByName(imageName).forEach(image -> {
+                    image.setProcessStatus(true);
+                    image.setProcessResult(emotion);
+                    imageRepository.save(image);
+                });
             }
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Error processing JSON response", e);

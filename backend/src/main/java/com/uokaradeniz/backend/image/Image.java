@@ -28,11 +28,5 @@ public class Image {
         this.imageData = imageData;
         this.sessionId = UUID.fromString(sessionId);
     }
-
-//    public Image(String originalFilename, String absolutePath, byte[] imageData) {
-//        this.name = originalFilename;
-//        this.path = absolutePath;
-//        this.imageData = imageData;
-//    }
 }
 

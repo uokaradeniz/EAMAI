@@ -30,7 +30,6 @@ import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -45,25 +44,26 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class HomeFragment extends Fragment {
-    //    http://192.168.0.78:8080
+//    http://192.168.0.78:8080
 //    http://10.0.2.2:8080
-    public static final String URL = "http://10.0.2.2:8080";
-    HomeViewModel homeViewModel;
+    public static final String URL = "http://192.168.0.78:8080";
     FragmentHomeBinding viewBinding;
     PreviewView previewView;
     ImageCapture imageCapture;
     Handler handler = new Handler(Looper.getMainLooper());
 
     UUID sessionId;
-    int delayMillis = 1685;
-
-//    private final List<byte[]> imageList = new ArrayList<>();
-//    private final List<String> filenameList = new ArrayList<>();
+    int delayMillis = 3000;
 
     private Map<String, byte[]> imageMapList = new HashMap<>();
 
     private final int maxCaptureCount = 3;
 
+
+    private Handler timerHandler = new Handler();
+    private int counter = 0;
+    private Runnable timerRunnable;
+    boolean maxNumOfImagesReached;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -86,7 +86,7 @@ public class HomeFragment extends Fragment {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
                 bindPreview(cameraProvider);
             } catch (ExecutionException | InterruptedException e) {
-                // Handle any errors (including cancellation) here.
+                Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         }, ContextCompat.getMainExecutor(requireContext()));
     }
@@ -109,11 +109,32 @@ public class HomeFragment extends Fragment {
         viewBinding = null;
     }
 
+
     public void onButtonClick(View v) {
+        startTimer();
+        viewBinding.button.setEnabled(false);
+        viewBinding.button.setText("SESSION IN PROGRESS...");
         captureAndSendImages(maxCaptureCount, delayMillis);
         sessionId = UUID.randomUUID();
     }
 
+    private void startTimer() {
+        counter = 0;
+        timerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                viewBinding.timerTextView.setText("Time elapsed: " + counter + "s");
+                counter++;
+                handler.postDelayed(this, 1000);
+            }
+        };
+
+        handler.post(timerRunnable);
+    }
+
+    private void stopTimer() {
+        handler.removeCallbacks(timerRunnable);
+    }
     private void captureAndSendImages(int count, int delayMillis) {
         imageMapList.clear();
         for (int i = 0; i < count; i++) {
@@ -126,12 +147,13 @@ public class HomeFragment extends Fragment {
             @Override
             public void onCaptureSuccess(@NonNull ImageProxy image) {
                 try (image) {
-                    // Convert ImageProxy to byte array
                     byte[] imageData = imageToByteArray(image);
                     String filename = "image_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")) + ".jpg";
                     imageMapList.put(filename, imageData);
                     Toast.makeText(requireContext(), "Image Captured: " + filename, Toast.LENGTH_SHORT).show();
-                    if (imageMapList.size() == maxCaptureCount) {
+                    maxNumOfImagesReached = imageMapList.size() == maxCaptureCount;
+                    if (maxNumOfImagesReached) {
+                        stopTimer();
                         sendImagesToServer(imageMapList);
                     }
                 } catch (IOException e) {

@@ -15,13 +15,10 @@ public class ImageController {
 
     private static final Logger log = LoggerFactory.getLogger(ImageController.class);
     private final ImageService imageService;
-    private final ImageRepository imageRepository;
 
-    public ImageController(ImageService imageService, ImageRepository imageRepository) {
+    public ImageController(ImageService imageService) {
         this.imageService = imageService;
-        this.imageRepository = imageRepository;
     }
-
 
     @PostMapping("/uploadImages")
     public ResponseEntity<?> getImagesFromUser(@RequestParam("images") List<MultipartFile> images, @RequestParam("sessionId") String sessionId) {

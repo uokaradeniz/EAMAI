@@ -3,7 +3,9 @@ import cv2
 import numpy as np
 import keras as k
 import matplotlib.pyplot as plt
-from config import UPLOAD_FOLDER, logging
+
+import config
+from config import UPLOAD_FOLDER, logging, clear_upload_folder
 
 def preprocess_image():
     logging.info("Processing image")
@@ -31,13 +33,17 @@ def predict_emotion():
     for img, img_path in images:
         prediction = model.predict(img)
         emotion = np.argmax(prediction)
-        predictions.append((img_path, mood_array[emotion]))
-        print(f'Image: {img_path}\nThe predicted emotion is: {mood_array[emotion]}')
+        img_name = os.path.basename(img_path)
+        predictions.append({
+            'image': img_name,
+            'emotion': mood_array[emotion]
+        })
+        print(f'Image: {img_name}\nThe predicted emotion is: {mood_array[emotion]}')
 
-        # Plot the image with the predicted emotion
         plt.imshow(cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB))
         plt.title(f'Emotion: {mood_array[emotion]}')
         plt.axis('off')
         plt.show()
 
+    clear_upload_folder()
     return predictions
