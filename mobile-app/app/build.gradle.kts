@@ -52,4 +52,6 @@ dependencies {
     implementation(libs.camera.camera2)
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
+    implementation(libs.gson)
+
 }

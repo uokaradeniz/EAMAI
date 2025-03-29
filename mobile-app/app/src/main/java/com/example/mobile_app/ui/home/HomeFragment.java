@@ -1,5 +1,9 @@
 package com.example.mobile_app.ui.home;
 
+import static com.example.mobile_app.ui.api.BackendApiConfig.URL_PHYSICAL;
+import static com.example.mobile_app.ui.api.BackendApiConfig.URL_VIRTUAL;
+import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
+
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -7,10 +11,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
@@ -44,26 +50,23 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class HomeFragment extends Fragment {
-//    http://192.168.0.78:8080
-//    http://10.0.2.2:8080
-    public static final String URL = "http://192.168.0.78:8080";
     FragmentHomeBinding viewBinding;
     PreviewView previewView;
+    Switch serverSwitch;
     ImageCapture imageCapture;
     Handler handler = new Handler(Looper.getMainLooper());
 
     UUID sessionId;
     int delayMillis = 3000;
 
-    private Map<String, byte[]> imageMapList = new HashMap<>();
+    private final Map<String, byte[]> imageMapList = new HashMap<>();
 
     private final int maxCaptureCount = 3;
 
-
-    private Handler timerHandler = new Handler();
     private int counter = 0;
     private Runnable timerRunnable;
     boolean maxNumOfImagesReached;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -72,11 +75,20 @@ public class HomeFragment extends Fragment {
 
         previewView = viewBinding.previewView;
         Button button = viewBinding.button;
+        serverSwitch = viewBinding.serverSwitch;
+        serverSwitch.setChecked(false);
         button.setOnClickListener(this::onButtonClick);
+
+        serverSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            currentUrl = isChecked ? URL_VIRTUAL : URL_PHYSICAL;
+        });
+
         startCamera();
 
         return root;
     }
+
+
 
     private void startCamera() {
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
@@ -134,7 +146,9 @@ public class HomeFragment extends Fragment {
 
     private void stopTimer() {
         handler.removeCallbacks(timerRunnable);
+        viewBinding.timerTextView.setText("Finalizing...");
     }
+
     private void captureAndSendImages(int count, int delayMillis) {
         imageMapList.clear();
         for (int i = 0; i < count; i++) {
@@ -191,7 +205,7 @@ public class HomeFragment extends Fragment {
         }
         RequestBody requestBody = builder.build();
         Request request = new Request.Builder()
-                .url(URL + "/api/uploadImages")
+                .url(currentUrl + "/api/uploadImages")
                 .post(requestBody)
                 .build();
 
@@ -208,11 +222,19 @@ public class HomeFragment extends Fragment {
                 requireActivity().runOnUiThread(() -> {
                     if (response.isSuccessful()) {
                         Toast.makeText(requireContext(), "Images sent successfully", Toast.LENGTH_SHORT).show();
+                        resetSessionViews();
                     } else {
                         Toast.makeText(requireContext(), "Failed to send images", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
         });
+    }
+
+    private void resetSessionViews() {
+        viewBinding.button.setEnabled(true);
+        viewBinding.button.setText("BEGIN");
+        viewBinding.timerTextView.setText("Ready");
+        imageMapList.clear();
     }
 }

@@ -18,6 +18,14 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -42,10 +50,34 @@ public class ImageService {
     void saveImages(List<MultipartFile> images, String sessionId) throws IOException {
         for (MultipartFile image : images) {
             byte[] imageData = image.getBytes();
-            imageRepository.save(new Image(image.getOriginalFilename(), null, imageData, sessionId));
+            byte[] compressedImageData = compressImage(imageData);
+            imageRepository.save(new Image(image.getOriginalFilename(), null, compressedImageData, sessionId));
         }
 
         log.info("Image List {}: {}", LocalDateTime.now(), imageList);
+    }
+
+    private byte[] compressImage(byte[] imageData) throws IOException {
+        ByteArrayInputStream bais = new ByteArrayInputStream(imageData);
+        BufferedImage bufferedImage = ImageIO.read(bais);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageOutputStream ios = ImageIO.createImageOutputStream(baos);
+        ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
+        writer.setOutput(ios);
+
+        ImageWriteParam param = writer.getDefaultWriteParam();
+        if (param.canWriteCompressed()) {
+            param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            param.setCompressionQuality(0.3f); // Adjust the quality value as needed
+        }
+
+        writer.write(null, new IIOImage(bufferedImage, null, null), param);
+        writer.dispose();
+        ios.close();
+        baos.close();
+
+        return baos.toByteArray();
     }
 
     @Async
@@ -76,11 +108,11 @@ public class ImageService {
 
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            List<ResponseObject> responseList = objectMapper.readValue(response.getBody(), new TypeReference<>() {
+            List<EcResponse> responseList = objectMapper.readValue(response.getBody(), new TypeReference<>() {
             });
-            for (ResponseObject responseObject : responseList) {
-                String imageName = responseObject.getImage();
-                String emotion = responseObject.getEmotion();
+            for (EcResponse EcResponse : responseList) {
+                String imageName = EcResponse.getImage();
+                String emotion = EcResponse.getEmotion();
 
                 imageRepository.findImagesByName(imageName).forEach(image -> {
                     image.setProcessStatus(true);
@@ -93,11 +125,23 @@ public class ImageService {
         }
     }
 
-    @Setter
-    @Getter
-    public static class ResponseObject {
-        private String image;
-        private String emotion;
+    List<ReportResponse> prepareReportResults() {
+        List<Image> images = imageRepository.findAllByProcessStatus(true).stream().toList();
+
+        if (images.isEmpty()) {
+            return null;
+        }
+        List<ReportResponse> results = new ArrayList<>();
+        images.forEach(image -> {
+            ReportResponse reportResponse = new ReportResponse();
+            reportResponse.setName(image.getName());
+            reportResponse.setEmotion(image.getProcessResult());
+            reportResponse.setSessionId(image.getSessionId().toString());
+            reportResponse.setImageData(image.getImageData());
+            results.add(reportResponse);
+        });
+
+        return results;
     }
 }
 

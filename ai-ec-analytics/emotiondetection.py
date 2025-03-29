@@ -1,10 +1,9 @@
 import os
-import cv2
-import numpy as np
-import keras as k
-import matplotlib.pyplot as plt
 
-import config
+import cv2
+import keras as k
+import numpy as np
+
 from config import UPLOAD_FOLDER, logging, clear_upload_folder
 
 def preprocess_image():
@@ -39,11 +38,6 @@ def predict_emotion():
             'emotion': mood_array[emotion]
         })
         print(f'Image: {img_name}\nThe predicted emotion is: {mood_array[emotion]}')
-
-        plt.imshow(cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB))
-        plt.title(f'Emotion: {mood_array[emotion]}')
-        plt.axis('off')
-        plt.show()
 
     clear_upload_folder()
     return predictions

@@ -30,4 +30,12 @@ public class ImageController {
             return ResponseEntity.internalServerError().body("Images couldn't be gathered: " + e.getMessage());
         }
     }
+
+    @GetMapping("/reports")
+    public ResponseEntity<?> getResults() {
+        List<ReportResponse> responseObject = imageService.prepareReportResults();
+
+        return ResponseEntity.ok(responseObject);
+    }
+
 }
