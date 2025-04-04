@@ -1,9 +1,11 @@
 package com.example.mobile_app.ui.home;
 
+import static androidx.core.content.ContextCompat.getColor;
 import static com.example.mobile_app.ui.api.BackendApiConfig.URL_PHYSICAL;
 import static com.example.mobile_app.ui.api.BackendApiConfig.URL_VIRTUAL;
 import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
 
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -11,12 +13,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.SwitchCompat;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
@@ -53,6 +55,7 @@ public class HomeFragment extends Fragment {
     FragmentHomeBinding viewBinding;
     PreviewView previewView;
     Switch serverSwitch;
+    Switch previewSwitch;
     ImageCapture imageCapture;
     Handler handler = new Handler(Looper.getMainLooper());
 
@@ -74,10 +77,12 @@ public class HomeFragment extends Fragment {
         View root = viewBinding.getRoot();
 
         previewView = viewBinding.previewView;
-        Button button = viewBinding.button;
+        ImageButton beginButton = viewBinding.beginButton;
         serverSwitch = viewBinding.serverSwitch;
         serverSwitch.setChecked(false);
-        button.setOnClickListener(this::onButtonClick);
+        previewSwitch = viewBinding.previewSwitch;
+        previewSwitch.setChecked(false);
+        beginButton.setOnClickListener(this::onBeginButtonClick);
 
         serverSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             currentUrl = isChecked ? URL_VIRTUAL : URL_PHYSICAL;
@@ -85,10 +90,16 @@ public class HomeFragment extends Fragment {
 
         startCamera();
 
+        previewSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if(isChecked) {
+                previewView.setForeground(new ColorDrawable(getColor(requireContext(), android.R.color.black)));
+            } else {
+                previewView.setForeground(null);
+            }
+        });
+
         return root;
     }
-
-
 
     private void startCamera() {
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
@@ -122,10 +133,10 @@ public class HomeFragment extends Fragment {
     }
 
 
-    public void onButtonClick(View v) {
+    public void onBeginButtonClick(View v) {
         startTimer();
-        viewBinding.button.setEnabled(false);
-        viewBinding.button.setText("SESSION IN PROGRESS...");
+        viewBinding.beginButton.setEnabled(false);
+        viewBinding.beginButton.setBackgroundColor(getColor(requireContext(),android.R.color.darker_gray));
         captureAndSendImages(maxCaptureCount, delayMillis);
         sessionId = UUID.randomUUID();
     }
@@ -135,7 +146,7 @@ public class HomeFragment extends Fragment {
         timerRunnable = new Runnable() {
             @Override
             public void run() {
-                viewBinding.timerTextView.setText("Time elapsed: " + counter + "s");
+                viewBinding.timerTextView.setText("Session in progress...\n Time elapsed: " + counter + "s");
                 counter++;
                 handler.postDelayed(this, 1000);
             }
@@ -232,8 +243,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void resetSessionViews() {
-        viewBinding.button.setEnabled(true);
-        viewBinding.button.setText("BEGIN");
+        viewBinding.beginButton.setEnabled(true);
         viewBinding.timerTextView.setText("Ready");
         imageMapList.clear();
     }

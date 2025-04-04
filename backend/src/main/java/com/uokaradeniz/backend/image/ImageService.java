@@ -143,5 +143,9 @@ public class ImageService {
 
         return results;
     }
+
+    public void deleteAllReports() {
+        imageRepository.deleteAll();
+    }
 }
 

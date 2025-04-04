@@ -38,4 +38,9 @@ public class ImageController {
         return ResponseEntity.ok(responseObject);
     }
 
+    @GetMapping("/deleteReports")
+    public ResponseEntity<?> deleteAllReports() {
+        imageService.deleteAllReports();
+        return ResponseEntity.ok("All reports deleted successfully.");
+    }
 }

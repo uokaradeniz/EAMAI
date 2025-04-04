@@ -34,6 +34,11 @@ public class ReportsFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = FragmentReportsBinding.inflate(inflater, container, false);
+        binding.deleteReportsButton.setOnClickListener(v -> {
+            DeleteAllReports();
+            reportAdapter = null;
+            binding.reportRecyclerView.setAdapter(reportAdapter);
+        });
         View root = binding.getRoot();
         GetReports();
         return root;
@@ -66,7 +71,7 @@ public class ReportsFragment extends Fragment {
                     String responseData = response.body().string();
                     if (responseData.isEmpty()) {
                         requireActivity().runOnUiThread(() ->
-                                Toast.makeText(requireContext(), "Response body is empty", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(requireContext(), "No reports found", Toast.LENGTH_SHORT).show()
                         );
                     } else {
                         List<Report> reports = Report.mapJsonToReports(responseData);
@@ -80,6 +85,43 @@ public class ReportsFragment extends Fragment {
                 } else {
                     requireActivity().runOnUiThread(() ->
                             Toast.makeText(requireContext(), "Failed to fetch reports", Toast.LENGTH_SHORT).show()
+                    );
+                }
+            }
+        });
+    }
+
+    public void DeleteAllReports() {
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(currentUrl + "/api/deleteReports")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                );
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    assert response.body() != null;
+                    String responseData = response.body().string();
+                    if (responseData.isEmpty()) {
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(requireContext(), "Something unexpected happened", Toast.LENGTH_SHORT).show()
+                        );
+                    } else {
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "Reports deleted successfully", Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                } else {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(requireContext(), "Failed to delete reports", Toast.LENGTH_SHORT).show()
                     );
                 }
             }

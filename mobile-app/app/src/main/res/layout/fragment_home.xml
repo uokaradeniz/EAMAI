@@ -8,47 +8,59 @@
 
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
-        android:layout_width="366dp"
-        android:layout_height="430dp"
+        android:layout_width="370dp"
+        android:layout_height="481dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.488"
+        app:layout_constraintHorizontal_bias="0.487"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.262" />
-
-    <Button
-        android:id="@+id/button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="BEGIN"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/timerTextView" />
+        app:layout_constraintVertical_bias="0.324" />
 
     <TextView
         android:id="@+id/timerTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_width="307dp"
+        android:layout_height="40dp"
         android:text="Ready"
+        android:textAlignment="center"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/previewView" />
+        app:layout_constraintTop_toBottomOf="@+id/beginButton" />
 
     <Switch
         android:id="@+id/server_switch"
         android:layout_width="126dp"
         android:layout_height="48dp"
-        android:layout_marginStart="140dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="40dp"
         android:text="Emulator?"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:textAlignment="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button"
-        app:layout_constraintVertical_bias="0.057" />
+        app:layout_constraintTop_toBottomOf="@+id/timerTextView" />
+
+    <Switch
+        android:id="@+id/preview_switch"
+        android:layout_width="150dp"
+        android:layout_height="49dp"
+        android:layout_marginBottom="16dp"
+        android:text="Turn off preview"
+        android:textAlignment="center"
+        app:layout_constraintBottom_toTopOf="@+id/previewView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageButton
+        android:id="@+id/beginButton"
+        android:layout_width="98dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#00BCD4"
+        android:onClick="onBeginButtonClick"
+        android:src="@drawable/ic_begin"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/previewView" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
