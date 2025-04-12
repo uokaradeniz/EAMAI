@@ -1,10 +1,12 @@
 package com.example.mobile_app.ui.home;
 
 import static androidx.core.content.ContextCompat.getColor;
+import static androidx.core.content.ContextCompat.getSystemService;
 import static com.example.mobile_app.ui.api.BackendApiConfig.URL_PHYSICAL;
 import static com.example.mobile_app.ui.api.BackendApiConfig.URL_VIRTUAL;
 import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
 
+import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,7 +14,9 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Switch;
 import android.widget.Toast;
@@ -57,6 +61,7 @@ public class HomeFragment extends Fragment {
     Switch serverSwitch;
     Switch previewSwitch;
     ImageCapture imageCapture;
+    EditText ipEditText;
     Handler handler = new Handler(Looper.getMainLooper());
 
     UUID sessionId;
@@ -70,6 +75,8 @@ public class HomeFragment extends Fragment {
     private Runnable timerRunnable;
     boolean maxNumOfImagesReached;
 
+    boolean isEmulator;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -82,16 +89,19 @@ public class HomeFragment extends Fragment {
         serverSwitch.setChecked(false);
         previewSwitch = viewBinding.previewSwitch;
         previewSwitch.setChecked(false);
+        ipEditText = viewBinding.ipEditText;
         beginButton.setOnClickListener(this::onBeginButtonClick);
 
         serverSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            currentUrl = isChecked ? URL_VIRTUAL : URL_PHYSICAL;
+            ipEditText.setVisibility(!isChecked ? View.VISIBLE : View.GONE);
+            isEmulator = isChecked;
         });
+
 
         startCamera();
 
         previewSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if(isChecked) {
+            if (isChecked) {
                 previewView.setForeground(new ColorDrawable(getColor(requireContext(), android.R.color.black)));
             } else {
                 previewView.setForeground(null);
@@ -132,11 +142,18 @@ public class HomeFragment extends Fragment {
         viewBinding = null;
     }
 
-
     public void onBeginButtonClick(View v) {
+        InputMethodManager imm = (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+        }
+        viewBinding.previewSwitch.setEnabled(false);
+        viewBinding.serverSwitch.setEnabled(false);
+        viewBinding.ipEditText.setEnabled(false);
+        currentUrl = isEmulator ? URL_VIRTUAL : URL_PHYSICAL + ipEditText.getText().toString() + ":8080";
         startTimer();
         viewBinding.beginButton.setEnabled(false);
-        viewBinding.beginButton.setBackgroundColor(getColor(requireContext(),android.R.color.darker_gray));
+        viewBinding.beginButton.setBackgroundColor(getColor(requireContext(), android.R.color.darker_gray));
         captureAndSendImages(maxCaptureCount, delayMillis);
         sessionId = UUID.randomUUID();
     }
@@ -158,6 +175,7 @@ public class HomeFragment extends Fragment {
     private void stopTimer() {
         handler.removeCallbacks(timerRunnable);
         viewBinding.timerTextView.setText("Finalizing...");
+        viewBinding.previewView.setForeground(null);
     }
 
     private void captureAndSendImages(int count, int delayMillis) {
@@ -245,6 +263,9 @@ public class HomeFragment extends Fragment {
     private void resetSessionViews() {
         viewBinding.beginButton.setEnabled(true);
         viewBinding.timerTextView.setText("Ready");
+        viewBinding.previewSwitch.setEnabled(true);
+        viewBinding.serverSwitch.setEnabled(true);
+        viewBinding.ipEditText.setEnabled(true);
         imageMapList.clear();
     }
 }

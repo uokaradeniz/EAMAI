@@ -1,6 +1,5 @@
 package com.example.mobile_app.ui.reports;
 
-import static com.example.mobile_app.ui.api.BackendApiConfig.URL_VIRTUAL;
 import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
 
 import android.os.Bundle;
