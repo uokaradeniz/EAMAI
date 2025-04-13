@@ -1,10 +1,10 @@
 package com.example.mobile_app.ui.home;
 
 import static androidx.core.content.ContextCompat.getColor;
-import static androidx.core.content.ContextCompat.getSystemService;
 import static com.example.mobile_app.ui.api.BackendApiConfig.URL_PHYSICAL;
 import static com.example.mobile_app.ui.api.BackendApiConfig.URL_VIRTUAL;
 import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
+import static com.example.mobile_app.ui.api.BackendApiConfig.isEmulator;
 
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
@@ -15,7 +15,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Switch;
@@ -34,6 +33,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.mobile_app.databinding.FragmentHomeBinding;
+import com.example.mobile_app.ui.utils.DeviceUtils;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.ByteArrayOutputStream;
@@ -58,7 +58,6 @@ import okhttp3.Response;
 public class HomeFragment extends Fragment {
     FragmentHomeBinding viewBinding;
     PreviewView previewView;
-    Switch serverSwitch;
     Switch previewSwitch;
     ImageCapture imageCapture;
     EditText ipEditText;
@@ -74,9 +73,7 @@ public class HomeFragment extends Fragment {
     private int counter = 0;
     private Runnable timerRunnable;
     boolean maxNumOfImagesReached;
-
-    boolean isEmulator;
-
+    String physicalAddress;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -85,18 +82,19 @@ public class HomeFragment extends Fragment {
 
         previewView = viewBinding.previewView;
         ImageButton beginButton = viewBinding.beginButton;
-        serverSwitch = viewBinding.serverSwitch;
-        serverSwitch.setChecked(false);
         previewSwitch = viewBinding.previewSwitch;
         previewSwitch.setChecked(false);
         ipEditText = viewBinding.ipEditText;
+        if (isEmulator) {
+            ipEditText.setVisibility(View.GONE);
+            currentUrl = URL_VIRTUAL;
+        } else {
+            ipEditText.setVisibility(View.VISIBLE);
+            physicalAddress = URL_PHYSICAL + ipEditText.getText().toString() + ":8080";
+            currentUrl = physicalAddress;
+        }
+
         beginButton.setOnClickListener(this::onBeginButtonClick);
-
-        serverSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            ipEditText.setVisibility(!isChecked ? View.VISIBLE : View.GONE);
-            isEmulator = isChecked;
-        });
-
 
         startCamera();
 
@@ -148,9 +146,9 @@ public class HomeFragment extends Fragment {
             imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
         }
         viewBinding.previewSwitch.setEnabled(false);
-        viewBinding.serverSwitch.setEnabled(false);
         viewBinding.ipEditText.setEnabled(false);
-        currentUrl = isEmulator ? URL_VIRTUAL : URL_PHYSICAL + ipEditText.getText().toString() + ":8080";
+        physicalAddress = URL_PHYSICAL + ipEditText.getText().toString() + ":8080";
+        currentUrl = isEmulator ? URL_VIRTUAL : physicalAddress;
         startTimer();
         viewBinding.beginButton.setEnabled(false);
         viewBinding.beginButton.setBackgroundColor(getColor(requireContext(), android.R.color.darker_gray));
@@ -264,7 +262,6 @@ public class HomeFragment extends Fragment {
         viewBinding.beginButton.setEnabled(true);
         viewBinding.timerTextView.setText("Ready");
         viewBinding.previewSwitch.setEnabled(true);
-        viewBinding.serverSwitch.setEnabled(true);
         viewBinding.ipEditText.setEnabled(true);
         imageMapList.clear();
     }

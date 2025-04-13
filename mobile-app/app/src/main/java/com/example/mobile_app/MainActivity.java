@@ -1,7 +1,11 @@
 package com.example.mobile_app;
 
-import android.os.Bundle;
+import static com.example.mobile_app.ui.api.BackendApiConfig.isEmulator;
 
+import android.os.Bundle;
+import android.widget.Toast;
+
+import com.example.mobile_app.ui.utils.DeviceUtils;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,7 +26,11 @@ public class MainActivity extends AppCompatActivity {
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
+        if (isEmulator) {
+            Toast.makeText(getApplicationContext(), "Running on an emulator", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(getApplicationContext(), "Running on a physical device", Toast.LENGTH_SHORT).show();
+        }
         BottomNavigationView navView = findViewById(R.id.nav_view);
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
@@ -32,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(binding.navView, navController);
+
     }
 
 }

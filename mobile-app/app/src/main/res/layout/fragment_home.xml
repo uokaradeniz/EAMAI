@@ -28,17 +28,6 @@
         app:layout_constraintTop_toBottomOf="@+id/beginButton" />
 
     <Switch
-        android:id="@+id/server_switch"
-        android:layout_width="126dp"
-        android:layout_height="48dp"
-        android:text="Emulator?"
-        android:textAlignment="center"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.849"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/timerTextView" />
-
-    <Switch
         android:id="@+id/preview_switch"
         android:layout_width="150dp"
         android:layout_height="49dp"
@@ -72,8 +61,7 @@
         android:inputType="text"
         android:textAlignment="viewStart"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/server_switch"
-        app:layout_constraintHorizontal_bias="0.58"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/timerTextView"
         app:layout_constraintVertical_bias="0.058" />
