@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -17,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -28,13 +25,11 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
 @Slf4j
 public class ImageService {
-    static final List<Image> imageList = new ArrayList<>();
     private final ImageRepository imageRepository;
     private final RestTemplate restTemplate;
 
@@ -76,11 +71,9 @@ public class ImageService {
     }
 
     private byte[] decodeBase64(String base64String) {
-        // Remove any whitespace or invalid characters
         String cleanedBase64 = base64String.replaceAll("\\s+", "");
 
         try {
-            // Decode the cleaned Base64 string
             return Base64.getDecoder().decode(cleanedBase64);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid Base64 input: " + e.getMessage(), e);
@@ -99,7 +92,7 @@ public class ImageService {
         ImageWriteParam param = writer.getDefaultWriteParam();
         if (param.canWriteCompressed()) {
             param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-            param.setCompressionQuality(0.3f); // Adjust the quality value as needed
+            param.setCompressionQuality(0.3f);
         }
 
         writer.write(null, new IIOImage(bufferedImage, null, null), param);

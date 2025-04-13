@@ -10,6 +10,9 @@ def preprocess_image():
     logging.info("Processing image")
     images = []
     for file in os.listdir(UPLOAD_FOLDER):
+        if "photo" not in file:
+            logging.info(f"Skipping file: {file}")
+            continue
         img_path = os.path.join(UPLOAD_FOLDER, file)
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         logging.info("Processing image: {}".format(img_path))

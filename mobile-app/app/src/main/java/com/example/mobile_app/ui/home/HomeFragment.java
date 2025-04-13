@@ -9,6 +9,7 @@ import static com.example.mobile_app.ui.api.BackendApiConfig.isEmulator;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -196,10 +197,15 @@ public class HomeFragment extends Fragment {
             @Override
             public void onCaptureSuccess(@NonNull ImageProxy image) {
                 try (image) {
+                    String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
+
                     byte[] photoData = imageToByteArray(image);
                     byte[] screenshotData = captureScreenshot();
-                    imageMapList.put(twinId + "_photo.jpg", photoData);
-                    imageMapList.put(twinId + "_screenshot.jpg", screenshotData);
+
+                    // Use timestamp in file names
+                    imageMapList.put(twinId + "_photo_" + timestamp + ".jpg", photoData);
+                    imageMapList.put(twinId + "_screenshot_" + timestamp + ".jpg", screenshotData);
+
                     Toast.makeText(requireContext(), "Captured photo and screenshot with twinId: " + twinId, Toast.LENGTH_SHORT).show();
 
                     maxNumOfImagesReached = imageMapList.size() / 2 == maxCaptureCount;
@@ -220,13 +226,20 @@ public class HomeFragment extends Fragment {
     }
 
     private byte[] captureScreenshot() throws IOException {
-        Bitmap bitmap = Bitmap.createBitmap(previewView.getWidth(), previewView.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        previewView.draw(canvas);
+        View rootView = requireActivity().getWindow().getDecorView().getRootView();
+        rootView.setDrawingCacheEnabled(true);
+        Bitmap rootBitmap = rotateBitmap(Bitmap.createBitmap(rootView.getDrawingCache()));
+        rootView.setDrawingCacheEnabled(false);
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+        rootBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
         return outputStream.toByteArray();
+    }
+
+    private Bitmap rotateBitmap(Bitmap bitmap) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(-90);
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
     private byte[] imageToByteArray(ImageProxy image) throws IOException {
@@ -243,15 +256,14 @@ public class HomeFragment extends Fragment {
     private void sendImagesToServer(Map<String, byte[]> images) {
         OkHttpClient client = new OkHttpClient();
 
-        // Create a JSON array for images
         JSONArray imagesArray = new JSONArray();
 
         for (Map.Entry<String, byte[]> entry : images.entrySet()) {
             String originalFileName = entry.getKey();
             String twinId = originalFileName.split("_")[0];
             String type = originalFileName.contains("photo") ? "photo" : "screenshot";
-            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
-            String newFileName = twinId + "_" + type + "_" + timestamp + ".jpg";
+            String timestampAndExtension = originalFileName.split("_")[2];
+            String newFileName = type + "_" + timestampAndExtension;
             String base64Image = android.util.Base64.encodeToString(entry.getValue(), android.util.Base64.DEFAULT);
 
             JSONObject imageObject = new JSONObject();

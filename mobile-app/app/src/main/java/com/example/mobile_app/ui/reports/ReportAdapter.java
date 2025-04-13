@@ -35,7 +35,7 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
         Report report = reportList.get(position);
         holder.nameTextView.setText("Image Name: " + report.getName());
         holder.emotionTextView.setText("Emotion: " + report.getEmotion());
-        holder.sessionIdTextView.setText("Session ID: " + String.valueOf(report.getSessionId()));
+        holder.sessionIdTextView.setText("Session ID: " + report.getSessionId());
 
         byte[] imageBytes = report.getImageData();
         if (imageBytes != null && imageBytes.length > 0) {
