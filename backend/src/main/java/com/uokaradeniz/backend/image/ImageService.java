@@ -2,6 +2,7 @@ package com.uokaradeniz.backend.image;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.Setter;
@@ -42,19 +43,48 @@ public class ImageService {
         this.restTemplate = restTemplate;
     }
 
-    public void saveImagesAndProcess(List<MultipartFile> images, String sessionId) throws IOException {
-        saveImages(images, sessionId);
+    public void saveImagesAndProcess(String jsonPayload) throws IOException {
+        saveImages(jsonPayload);
+        JsonNode rootNode = new ObjectMapper().readTree(jsonPayload);
+        String sessionId = rootNode.get("sessionId").asText();
         sendImagesToAIService(sessionId);
     }
 
-    void saveImages(List<MultipartFile> images, String sessionId) throws IOException {
-        for (MultipartFile image : images) {
-            byte[] imageData = image.getBytes();
-            byte[] compressedImageData = compressImage(imageData);
-            imageRepository.save(new Image(image.getOriginalFilename(), null, compressedImageData, sessionId));
-        }
+    void saveImages(String jsonPayload) throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode rootNode = objectMapper.readTree(jsonPayload);
 
-        log.info("Image List {}: {}", LocalDateTime.now(), imageList);
+        UUID sessionId = UUID.fromString(rootNode.get("sessionId").asText());
+
+        JsonNode imagesNode = rootNode.get("images");
+        if (imagesNode.isArray()) {
+            for (JsonNode imageNode : imagesNode) {
+                UUID twinId = UUID.fromString(imageNode.get("twinId").asText());
+                String type = imageNode.get("type").asText();
+                String originalFilename = imageNode.get("filename").asText();
+                String data = imageNode.get("data").asText();
+
+                boolean isPhoto = "photo".equalsIgnoreCase(type);
+
+                byte[] imageData = decodeBase64(data);
+
+                byte[] compressedImageData = compressImage(imageData);
+
+                imageRepository.save(new Image(originalFilename, null, compressedImageData, sessionId.toString(), twinId.toString(), isPhoto));
+            }
+        }
+    }
+
+    private byte[] decodeBase64(String base64String) {
+        // Remove any whitespace or invalid characters
+        String cleanedBase64 = base64String.replaceAll("\\s+", "");
+
+        try {
+            // Decode the cleaned Base64 string
+            return Base64.getDecoder().decode(cleanedBase64);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid Base64 input: " + e.getMessage(), e);
+        }
     }
 
     private byte[] compressImage(byte[] imageData) throws IOException {

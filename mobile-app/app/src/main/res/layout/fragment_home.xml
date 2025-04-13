@@ -54,12 +54,12 @@
 
     <EditText
         android:id="@+id/ipEditText"
-        android:layout_width="118dp"
-        android:layout_height="48dp"
+        android:layout_width="151dp"
+        android:layout_height="43dp"
         android:ems="10"
         android:hint="IP address"
         android:inputType="text"
-        android:textAlignment="viewStart"
+        android:textAlignment="center"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

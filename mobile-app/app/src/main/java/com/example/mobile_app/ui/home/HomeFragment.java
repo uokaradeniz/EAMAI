@@ -7,6 +7,8 @@ import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
 import static com.example.mobile_app.ui.api.BackendApiConfig.isEmulator;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -33,8 +35,11 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.mobile_app.databinding.FragmentHomeBinding;
-import com.example.mobile_app.ui.utils.DeviceUtils;
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -74,6 +79,7 @@ public class HomeFragment extends Fragment {
     private Runnable timerRunnable;
     boolean maxNumOfImagesReached;
     String physicalAddress;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -173,7 +179,7 @@ public class HomeFragment extends Fragment {
     private void stopTimer() {
         handler.removeCallbacks(timerRunnable);
         viewBinding.timerTextView.setText("Finalizing...");
-        viewBinding.previewView.setForeground(null);
+        previewView.setForeground(new ColorDrawable(getColor(requireContext(), android.R.color.black)));
     }
 
     private void captureAndSendImages(int count, int delayMillis) {
@@ -184,15 +190,19 @@ public class HomeFragment extends Fragment {
     }
 
     private void captureImage() {
+        String twinId = UUID.randomUUID().toString();
+
         imageCapture.takePicture(ContextCompat.getMainExecutor(requireContext()), new ImageCapture.OnImageCapturedCallback() {
             @Override
             public void onCaptureSuccess(@NonNull ImageProxy image) {
                 try (image) {
-                    byte[] imageData = imageToByteArray(image);
-                    String filename = "image_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")) + ".jpg";
-                    imageMapList.put(filename, imageData);
-                    Toast.makeText(requireContext(), "Image Captured: " + filename, Toast.LENGTH_SHORT).show();
-                    maxNumOfImagesReached = imageMapList.size() == maxCaptureCount;
+                    byte[] photoData = imageToByteArray(image);
+                    byte[] screenshotData = captureScreenshot();
+                    imageMapList.put(twinId + "_photo.jpg", photoData);
+                    imageMapList.put(twinId + "_screenshot.jpg", screenshotData);
+                    Toast.makeText(requireContext(), "Captured photo and screenshot with twinId: " + twinId, Toast.LENGTH_SHORT).show();
+
+                    maxNumOfImagesReached = imageMapList.size() / 2 == maxCaptureCount;
                     if (maxNumOfImagesReached) {
                         stopTimer();
                         sendImagesToServer(imageMapList);
@@ -209,6 +219,16 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    private byte[] captureScreenshot() throws IOException {
+        Bitmap bitmap = Bitmap.createBitmap(previewView.getWidth(), previewView.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        previewView.draw(canvas);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+        return outputStream.toByteArray();
+    }
+
     private byte[] imageToByteArray(ImageProxy image) throws IOException {
         ByteBuffer buffer = image.getPlanes()[0].getBuffer();
         byte[] bytes = new byte[buffer.remaining()];
@@ -222,15 +242,39 @@ public class HomeFragment extends Fragment {
 
     private void sendImagesToServer(Map<String, byte[]> images) {
         OkHttpClient client = new OkHttpClient();
-        MultipartBody.Builder builder = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("sessionId", sessionId.toString());
+
+        // Create a JSON array for images
+        JSONArray imagesArray = new JSONArray();
 
         for (Map.Entry<String, byte[]> entry : images.entrySet()) {
-            builder.addFormDataPart("images", entry.getKey(),
-                    RequestBody.create(entry.getValue(), MediaType.parse("image/jpeg")));
+            String originalFileName = entry.getKey();
+            String twinId = originalFileName.split("_")[0];
+            String type = originalFileName.contains("photo") ? "photo" : "screenshot";
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+            String newFileName = twinId + "_" + type + "_" + timestamp + ".jpg";
+            String base64Image = android.util.Base64.encodeToString(entry.getValue(), android.util.Base64.DEFAULT);
+
+            JSONObject imageObject = new JSONObject();
+            try {
+                imageObject.put("twinId", twinId);
+                imageObject.put("type", type);
+                imageObject.put("filename", newFileName);
+                imageObject.put("data", base64Image);
+                imagesArray.put(imageObject);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
-        RequestBody requestBody = builder.build();
+
+        JSONObject payload = new JSONObject();
+        try {
+            payload.put("sessionId", sessionId.toString());
+            payload.put("images", imagesArray);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        RequestBody requestBody = RequestBody.create(payload.toString(), MediaType.parse("application/json"));
         Request request = new Request.Builder()
                 .url(currentUrl + "/api/uploadImages")
                 .post(requestBody)
@@ -263,6 +307,7 @@ public class HomeFragment extends Fragment {
         viewBinding.timerTextView.setText("Ready");
         viewBinding.previewSwitch.setEnabled(true);
         viewBinding.ipEditText.setEnabled(true);
+        previewView.setForeground(null);
         imageMapList.clear();
     }
 }

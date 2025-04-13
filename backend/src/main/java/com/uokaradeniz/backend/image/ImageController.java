@@ -21,16 +21,15 @@ public class ImageController {
     }
 
     @PostMapping("/uploadImages")
-    public ResponseEntity<?> getImagesFromUser(@RequestParam("images") List<MultipartFile> images, @RequestParam("sessionId") String sessionId) {
+    public ResponseEntity<?> getImagesFromUser(@RequestBody String jsonPayload) {
         try {
-            imageService.saveImagesAndProcess(images, sessionId);
+            imageService.saveImagesAndProcess(jsonPayload);
             return ResponseEntity.ok("Images retrieved successfully.");
         } catch (IOException e) {
             log.error("Images couldn't be gathered: {}", e.getMessage());
             return ResponseEntity.internalServerError().body("Images couldn't be gathered: " + e.getMessage());
         }
     }
-
     @GetMapping("/reports")
     public ResponseEntity<?> getResults() {
         List<ReportResponse> responseObject = imageService.prepareReportResults();
