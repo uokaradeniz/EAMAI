@@ -32,7 +32,7 @@ public class ReportsViewModel extends ViewModel {
     }
 
     public void fetchReports(String url) {
-        isLoading.setValue(true);
+        isLoading.postValue(true);
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
                 .url(url + "/api/reports")
@@ -79,7 +79,7 @@ public class ReportsViewModel extends ViewModel {
             }
 
             @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
                 if (response.isSuccessful()) {
                     deleteSuccess.postValue(true);
                     fetchReports(currentUrl);

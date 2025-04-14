@@ -47,6 +47,12 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
         }
     }
 
+    public void updateReports(List<Report> newReports) {
+        reportList.clear();
+        reportList.addAll(newReports);
+        notifyDataSetChanged();
+    }
+
     @Override
     public int getItemCount() {
         return reportList.size();

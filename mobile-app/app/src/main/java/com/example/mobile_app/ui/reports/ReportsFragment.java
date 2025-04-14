@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.mobile_app.databinding.FragmentReportsBinding;
 
+import java.util.List;
+
 public class ReportsFragment extends Fragment {
 
     private FragmentReportsBinding binding;
@@ -46,6 +48,9 @@ public class ReportsFragment extends Fragment {
                 binding.reportRecyclerView.setAdapter(reportAdapter);
                 Toast.makeText(requireContext(), "Reports loaded successfully", Toast.LENGTH_SHORT).show();
             } else {
+                if (reportAdapter != null) {
+                    reportAdapter.updateReports(List.of()); // Clear the adapter
+                }
                 Toast.makeText(requireContext(), "No reports found", Toast.LENGTH_SHORT).show();
             }
         });
@@ -70,6 +75,7 @@ public class ReportsFragment extends Fragment {
     private void setupUI() {
         binding.deleteReportsButton.setOnClickListener(v -> {
             reportsViewModel.deleteAllReports();
+
         });
 
         binding.refreshButton.setOnClickListener(v -> {
