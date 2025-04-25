@@ -9,14 +9,6 @@ import java.util.UUID;
 
 @Repository
 public interface ImageRepository extends JpaRepository<Image, Long> {
-    List<Image> findAllByProcessStatus(boolean processStatus);
-
-    List<Image> findImagesBySessionId(UUID sessionId);
-
-    List<Image> findImagesByName(String name);
-
-    List<Image> findImagesByProcessStatus(boolean processStatus);
-
     List<Image> findImagesByTwinId(UUID twinId);
 
     List<Image> findImagesByProcessStatusAndSessionId(boolean processStatus, UUID sessionId);

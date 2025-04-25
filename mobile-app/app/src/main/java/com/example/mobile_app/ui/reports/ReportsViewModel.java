@@ -2,8 +2,6 @@ package com.example.mobile_app.ui.reports;
 
 import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
 
-import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;

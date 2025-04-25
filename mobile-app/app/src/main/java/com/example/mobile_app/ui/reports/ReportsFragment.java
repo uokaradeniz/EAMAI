@@ -44,7 +44,6 @@ public class ReportsFragment extends Fragment {
     }
 
     private void setupObservers() {
-// In ReportsFragment.java, inside setupObservers():
         reportsViewModel.getReports().observe(getViewLifecycleOwner(), reports -> {
             if (reports != null && !reports.isEmpty()) {
                 reportAdapter = new ReportAdapter(reports, report -> {
@@ -59,7 +58,6 @@ public class ReportsFragment extends Fragment {
                 });
                 binding.reportRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
                 binding.reportRecyclerView.setAdapter(reportAdapter);
-                Toast.makeText(requireContext(), "Reports loaded successfully", Toast.LENGTH_SHORT).show();
             } else {
                 if (reportAdapter != null) {
                     reportAdapter.updateReports(List.of());

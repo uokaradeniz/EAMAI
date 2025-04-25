@@ -6,19 +6,17 @@ from google import genai
 from google.genai import types
 
 client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 def process_images(json_data):
     results = []
     try:
-        # Ensure json_data is a list
         if not isinstance(json_data, list):
             raise ValueError("Expected a list as input")
 
         if len(json_data) != 2:
             raise ValueError("Expected exactly 2 images in the input list")
 
-        # Extract and decode image data
         photo_data = json_data[0].get('photo_data', '')
         screenshot_data = json_data[1].get('screenshot_data', '')
 
@@ -28,7 +26,6 @@ def process_images(json_data):
         img1_bytes = base64.b64decode(photo_data)
         img2_bytes = base64.b64decode(screenshot_data)
 
-        # Send to Gemini API
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=[

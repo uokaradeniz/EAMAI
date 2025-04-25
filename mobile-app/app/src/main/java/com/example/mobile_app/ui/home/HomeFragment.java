@@ -8,7 +8,6 @@ import static com.example.mobile_app.ui.api.BackendApiConfig.isEmulator;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -57,7 +56,6 @@ import java.util.concurrent.ExecutionException;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
-import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -172,8 +170,6 @@ public class HomeFragment extends Fragment {
         }
         viewBinding.previewSwitch.setEnabled(false);
         viewBinding.ipEditText.setEnabled(false);
-//        physicalAddress = URL_PHYSICAL + ipEditText.getText().toString() + ":8080";
-//        currentUrl = isEmulator ? URL_VIRTUAL : physicalAddress;
         startTimer();
         viewBinding.beginButton.setEnabled(false);
         viewBinding.beginButton.setBackgroundColor(getColor(requireContext(), android.R.color.darker_gray));
@@ -220,7 +216,6 @@ public class HomeFragment extends Fragment {
                     byte[] photoData = imageToByteArray(image);
                     byte[] screenshotData = captureScreenshot();
 
-                    // Use timestamp in file names
                     imageMapList.put(twinId + "_photo_" + timestamp + ".jpg", photoData);
                     imageMapList.put(twinId + "_screenshot_" + timestamp + ".jpg", screenshotData);
 
@@ -319,7 +314,7 @@ public class HomeFragment extends Fragment {
             }
 
             @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
                 requireActivity().runOnUiThread(() -> {
                     if (response.isSuccessful()) {
                         Toast.makeText(requireContext(), "Images sent successfully", Toast.LENGTH_SHORT).show();

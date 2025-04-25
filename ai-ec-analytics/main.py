@@ -1,15 +1,9 @@
-import os
-
 from flask import Flask, request, jsonify
-
-from config import UPLOAD_FOLDER, logging, clear_upload_folder
-
-# from emotiondetection import predict_emotion
 from emotionInterpreterAPI import process_images
+import logging
 
 app = Flask(__name__)
-# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 @app.route('/processImages', methods=['POST'])
 def get_unprocessed_images():
@@ -23,6 +17,7 @@ def get_unprocessed_images():
 
     results = process_images(image_pairs)
     return jsonify(results), 200
+
 
 if __name__ == '__main__':
     app.run()

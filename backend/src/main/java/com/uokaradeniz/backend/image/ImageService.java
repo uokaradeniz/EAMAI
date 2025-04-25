@@ -99,51 +99,6 @@ public class ImageService {
         return baos.toByteArray();
     }
 
-//    @Async
-//    void sendImagesToAIService(String sessionId) {
-//        List<Image> images = imageRepository.findBySessionId(UUID.fromString(sessionId));
-//        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-//
-//        images.forEach(image -> {
-//            ByteArrayResource resource = new ByteArrayResource(image.getImageData()) {
-//                @Override
-//                public String getFilename() {
-//                    return image.getName();
-//                }
-//            };
-//            body.add("images", resource);
-//        });
-//
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-//
-//        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-//
-//        String serverUrl = "http://127.0.0.1:5000/processImages";
-//
-//        ResponseEntity<String> response = restTemplate.postForEntity(serverUrl, requestEntity, String.class);
-//
-//        System.out.println("Response: " + response.getBody());
-//
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        try {
-//            List<EcResponse> responseList = objectMapper.readValue(response.getBody(), new TypeReference<>() {
-//            });
-//            for (EcResponse EcResponse : responseList) {
-//                String imageName = EcResponse.getImage();
-//                String emotion = EcResponse.getEmotion();
-//
-//                imageRepository.findImagesByName(imageName).forEach(image -> {
-//                    image.setProcessStatus(true);
-//                    image.setProcessResult(emotion);
-//                    imageRepository.save(image);
-//                });
-//            }
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException("Error processing JSON response", e);
-//        }
-//    }
-
     void sendImagesToAIService(String sessionId) {
         List<Image> images = imageRepository.findImagesByProcessStatusAndSessionId(false, UUID.fromString(sessionId));
 

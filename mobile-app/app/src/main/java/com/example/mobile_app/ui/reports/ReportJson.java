@@ -7,7 +7,6 @@ public class ReportJson {
     private String imageData;
     private String sessionId;
 
-    // Getters and setters
     public String getName() {
         return name;
     }
