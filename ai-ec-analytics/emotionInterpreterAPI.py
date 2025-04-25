@@ -32,7 +32,7 @@ def process_images(json_data):
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=[
-                "Interpret the emotion of the person in the image according to the screenshot. What could be the reason for this emotion according to the screenshot? Make your answer simple and declarative, fit for reporting. Only respond with the analysis.",
+                "One image is a photo and the other is a screenshot. Comment on the context, connection between the persons emotion and the user experience of the application on the screenshot. Respond concisely. No introductions. Your response must be max of 100 characters",
                 types.Part.from_bytes(data=img1_bytes, mime_type='image/jpeg'),
                 types.Part.from_bytes(data=img2_bytes, mime_type='image/jpeg')
             ]
