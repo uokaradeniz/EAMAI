@@ -16,11 +16,16 @@ import com.example.mobile_app.R;
 import java.util.List;
 
 public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportViewHolder> {
+    public interface OnReportClickListener {
+        void onReportClick(Report report);
+    }
 
     private final List<Report> reportList;
+    private final OnReportClickListener listener;
 
-    public ReportAdapter(List<Report> reportList) {
+    public ReportAdapter(List<Report> reportList, OnReportClickListener listener) {
         this.reportList = reportList;
+        this.listener = listener;
     }
 
     @NonNull
@@ -34,8 +39,13 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
     public void onBindViewHolder(@NonNull ReportViewHolder holder, int position) {
         Report report = reportList.get(position);
         holder.nameTextView.setText("Image Name: " + report.getName());
-        holder.analysisTextView.setText("Analysis: " + report.getAnalysis());
+//        holder.analysisTextView.setText("Analysis: " + report.getAnalysis());
         holder.sessionIdTextView.setText("Session ID: " + report.getSessionId());
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onReportClick(report);
+            }
+        });
 
         byte[] imageBytes = report.getImageData();
         if (imageBytes != null && imageBytes.length > 0) {
@@ -67,7 +77,7 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
         public ReportViewHolder(@NonNull View itemView) {
             super(itemView);
             nameTextView = itemView.findViewById(R.id.report_name);
-            analysisTextView = itemView.findViewById(R.id.report_analysis);
+//            analysisTextView = itemView.findViewById(R.id.report_analysis);
             sessionIdTextView = itemView.findViewById(R.id.report_session_id);
             imageView = itemView.findViewById(R.id.report_image);
         }

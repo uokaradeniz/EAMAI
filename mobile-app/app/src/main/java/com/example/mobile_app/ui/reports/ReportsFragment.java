@@ -12,8 +12,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.example.mobile_app.R;
 import com.example.mobile_app.databinding.FragmentReportsBinding;
 
 import java.util.List;
@@ -41,15 +44,25 @@ public class ReportsFragment extends Fragment {
     }
 
     private void setupObservers() {
+// In ReportsFragment.java, inside setupObservers():
         reportsViewModel.getReports().observe(getViewLifecycleOwner(), reports -> {
             if (reports != null && !reports.isEmpty()) {
-                reportAdapter = new ReportAdapter(reports);
+                reportAdapter = new ReportAdapter(reports, report -> {
+                    Bundle bundle = new Bundle();
+                    bundle.putString("name", report.getName());
+                    bundle.putString("analysis", report.getAnalysis());
+                    bundle.putByteArray("image", report.getImageData());
+                    bundle.putString("session_id", report.getSessionId().toString());
+
+                    NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_activity_main);
+                    navController.navigate(R.id.action_reports_to_reportDetail, bundle);
+                });
                 binding.reportRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
                 binding.reportRecyclerView.setAdapter(reportAdapter);
                 Toast.makeText(requireContext(), "Reports loaded successfully", Toast.LENGTH_SHORT).show();
             } else {
                 if (reportAdapter != null) {
-                    reportAdapter.updateReports(List.of()); // Clear the adapter
+                    reportAdapter.updateReports(List.of());
                 }
                 Toast.makeText(requireContext(), "No reports found", Toast.LENGTH_SHORT).show();
             }
