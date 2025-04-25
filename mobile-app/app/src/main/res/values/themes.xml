@@ -8,5 +8,6 @@
         <item name="colorOnSecondary">@color/white</item>
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <item name="colorControlActivated">#00BCD4</item>
+        <item name="backgroundReportDetail">#FFFFFF</item>
     </style>
 </resources>
