@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 public class ReportResponse {
     private String name;
-    private String emotion;
+    private String analysis;
     private String sessionId;
     private byte[] imageData;
 }

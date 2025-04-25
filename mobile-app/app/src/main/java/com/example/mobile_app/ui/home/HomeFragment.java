@@ -14,6 +14,8 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -113,6 +115,22 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        viewBinding.ipEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                physicalAddress = URL_PHYSICAL + s.toString() + ":8080";
+                currentUrl = isEmulator ? URL_VIRTUAL : physicalAddress;
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+
         return root;
     }
 
@@ -154,8 +172,8 @@ public class HomeFragment extends Fragment {
         }
         viewBinding.previewSwitch.setEnabled(false);
         viewBinding.ipEditText.setEnabled(false);
-        physicalAddress = URL_PHYSICAL + ipEditText.getText().toString() + ":8080";
-        currentUrl = isEmulator ? URL_VIRTUAL : physicalAddress;
+//        physicalAddress = URL_PHYSICAL + ipEditText.getText().toString() + ":8080";
+//        currentUrl = isEmulator ? URL_VIRTUAL : physicalAddress;
         startTimer();
         viewBinding.beginButton.setEnabled(false);
         viewBinding.beginButton.setBackgroundColor(getColor(requireContext(), android.R.color.darker_gray));

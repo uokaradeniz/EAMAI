@@ -3,7 +3,7 @@ package com.example.mobile_app.ui.reports;
 public class ReportJson {
 
     private String name;
-    private String emotion;
+    private String analysis;
     private String imageData;
     private String sessionId;
 
@@ -16,12 +16,12 @@ public class ReportJson {
         this.name = name;
     }
 
-    public String getEmotion() {
-        return emotion;
+    public String getAnalysis() {
+        return analysis;
     }
 
-    public void setEmotion(String emotion) {
-        this.emotion = emotion;
+    public void setAnalysis(String analysis) {
+        this.analysis = analysis;
     }
 
     public String getImageData() {

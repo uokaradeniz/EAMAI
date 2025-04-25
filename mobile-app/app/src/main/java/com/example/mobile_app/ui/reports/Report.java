@@ -1,9 +1,6 @@
 package com.example.mobile_app.ui.reports;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import java.util.Base64;
@@ -13,7 +10,7 @@ import java.util.stream.Collectors;
 
 public class Report {
     private String name;
-    private String emotion;
+    private String analysis;
     private byte[] imageData;
     private UUID sessionId;
 
@@ -25,12 +22,12 @@ public class Report {
         this.name = name;
     }
 
-    public String getEmotion() {
-        return emotion;
+    public String getAnalysis() {
+        return analysis;
     }
 
-    public void setEmotion(String emotion) {
-        this.emotion = emotion;
+    public void setAnalysis(String analysis) {
+        this.analysis = analysis;
     }
 
     public byte[] getImageData() {
@@ -56,7 +53,7 @@ public class Report {
         return reportJsonObjects.stream().map(reportJsonObject -> {
             Report report = new Report();
             report.setName(reportJsonObject.getName());
-            report.setEmotion(reportJsonObject.getEmotion());
+            report.setAnalysis(reportJsonObject.getAnalysis());
             report.setImageData(Base64.getDecoder().decode(reportJsonObject.getImageData()));
             report.setSessionId(UUID.fromString(reportJsonObject.getSessionId()));
             return report;

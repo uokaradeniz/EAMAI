@@ -5,15 +5,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import javax.imageio.IIOImage;
@@ -103,53 +99,122 @@ public class ImageService {
         return baos.toByteArray();
     }
 
-    @Async
+//    @Async
+//    void sendImagesToAIService(String sessionId) {
+//        List<Image> images = imageRepository.findBySessionId(UUID.fromString(sessionId));
+//        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+//
+//        images.forEach(image -> {
+//            ByteArrayResource resource = new ByteArrayResource(image.getImageData()) {
+//                @Override
+//                public String getFilename() {
+//                    return image.getName();
+//                }
+//            };
+//            body.add("images", resource);
+//        });
+//
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+//
+//        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+//
+//        String serverUrl = "http://127.0.0.1:5000/processImages";
+//
+//        ResponseEntity<String> response = restTemplate.postForEntity(serverUrl, requestEntity, String.class);
+//
+//        System.out.println("Response: " + response.getBody());
+//
+//        ObjectMapper objectMapper = new ObjectMapper();
+//        try {
+//            List<EcResponse> responseList = objectMapper.readValue(response.getBody(), new TypeReference<>() {
+//            });
+//            for (EcResponse EcResponse : responseList) {
+//                String imageName = EcResponse.getImage();
+//                String emotion = EcResponse.getEmotion();
+//
+//                imageRepository.findImagesByName(imageName).forEach(image -> {
+//                    image.setProcessStatus(true);
+//                    image.setProcessResult(emotion);
+//                    imageRepository.save(image);
+//                });
+//            }
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException("Error processing JSON response", e);
+//        }
+//    }
+
     void sendImagesToAIService(String sessionId) {
-        List<Image> images = imageRepository.findBySessionId(UUID.fromString(sessionId));
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        List<Image> images = imageRepository.findImagesByProcessStatusAndSessionId(false, UUID.fromString(sessionId));
 
-        images.forEach(image -> {
-            ByteArrayResource resource = new ByteArrayResource(image.getImageData()) {
-                @Override
-                public String getFilename() {
-                    return image.getName();
+        Map<UUID, Queue<Image>> imagesByTwinId = new HashMap<>();
+        for (Image image : images) {
+            imagesByTwinId.computeIfAbsent(image.getTwinId(), _ -> new LinkedList<>()).add(image);
+        }
+
+        for (Map.Entry<UUID, Queue<Image>> entry : imagesByTwinId.entrySet()) {
+            UUID twinId = entry.getKey();
+            Queue<Image> twinQueue = entry.getValue();
+
+            while (!twinQueue.isEmpty()) {
+                List<Image> pair = new ArrayList<>();
+                for (int i = 0; i < 2 && !twinQueue.isEmpty(); i++) {
+                    pair.add(twinQueue.poll());
                 }
-            };
-            body.add("images", resource);
-        });
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
-        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-
-        String serverUrl = "http://127.0.0.1:5000/processImages";
-
-        ResponseEntity<String> response = restTemplate.postForEntity(serverUrl, requestEntity, String.class);
-
-        System.out.println("Response: " + response.getBody());
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            List<EcResponse> responseList = objectMapper.readValue(response.getBody(), new TypeReference<>() {
-            });
-            for (EcResponse EcResponse : responseList) {
-                String imageName = EcResponse.getImage();
-                String emotion = EcResponse.getEmotion();
-
-                imageRepository.findImagesByName(imageName).forEach(image -> {
-                    image.setProcessStatus(true);
-                    image.setProcessResult(emotion);
-                    imageRepository.save(image);
+                List<Map<String, Object>> imagePayloads = new ArrayList<>();
+                pair.forEach(image -> {
+                    Map<String, Object> imagePayload = new HashMap<>();
+                    imagePayload.put(image.isPhoto() ? "photo_data" : "screenshot_data", Base64.getEncoder().encodeToString(image.getImageData()));
+                    imagePayload.put("name", image.getName());
+                    imagePayloads.add(imagePayload);
                 });
+
+                imagePayloads.sort((a, b) -> {
+                    boolean aIsPhoto = a.containsKey("photo_data");
+                    boolean bIsPhoto = b.containsKey("photo_data");
+                    return Boolean.compare(!aIsPhoto, !bIsPhoto);
+                });
+
+                Map<String, Object> requestPayload = new HashMap<>();
+                requestPayload.put("twinId", twinId.toString());
+                requestPayload.put("images", imagePayloads);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+
+                HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestPayload, headers);
+
+                String serverUrl = "http://127.0.0.1:5000/processImages";
+
+                ResponseEntity<String> response = restTemplate.postForEntity(serverUrl, requestEntity, String.class);
+
+                System.out.println("Response for twinId " + twinId + ": " + response.getBody());
+
+                ObjectMapper objectMapper = new ObjectMapper();
+                try {
+                    List<EcResponse> responseList = objectMapper.readValue(response.getBody(), new TypeReference<>() {
+                    });
+                    for (EcResponse ecResponse : responseList) {
+                        String analysis = ecResponse.getAnalysis();
+
+                        imageRepository.findImagesByTwinId(twinId).forEach(image -> {
+                            if (pair.stream().anyMatch(p -> p.getName().equals(image.getName()))) {
+                                image.setProcessStatus(true);
+                                image.setProcessResult(analysis);
+                                imageRepository.save(image);
+                            }
+                        });
+                    }
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException("Error processing JSON response", e);
+                }
             }
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Error processing JSON response", e);
         }
     }
 
     List<ReportResponse> prepareReportResults() {
-        List<Image> images = imageRepository.findAllByProcessStatus(true).stream().toList();
+        List<Image> images = imageRepository.findAllByProcessStatusAndIsPhoto(true, true).stream().toList();
 
         if (images.isEmpty()) {
             return null;
@@ -158,7 +223,7 @@ public class ImageService {
         images.forEach(image -> {
             ReportResponse reportResponse = new ReportResponse();
             reportResponse.setName(image.getName());
-            reportResponse.setEmotion(image.getProcessResult());
+            reportResponse.setAnalysis(image.getProcessResult());
             reportResponse.setSessionId(image.getSessionId().toString());
             reportResponse.setImageData(image.getImageData());
             results.add(reportResponse);

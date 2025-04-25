@@ -34,7 +34,7 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
     public void onBindViewHolder(@NonNull ReportViewHolder holder, int position) {
         Report report = reportList.get(position);
         holder.nameTextView.setText("Image Name: " + report.getName());
-        holder.emotionTextView.setText("Emotion: " + report.getEmotion());
+        holder.analysisTextView.setText("Analysis: " + report.getAnalysis());
         holder.sessionIdTextView.setText("Session ID: " + report.getSessionId());
 
         byte[] imageBytes = report.getImageData();
@@ -60,14 +60,14 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
 
     static class ReportViewHolder extends RecyclerView.ViewHolder {
         TextView nameTextView;
-        TextView emotionTextView;
+        TextView analysisTextView;
         TextView sessionIdTextView;
         ImageView imageView;
 
         public ReportViewHolder(@NonNull View itemView) {
             super(itemView);
             nameTextView = itemView.findViewById(R.id.report_name);
-            emotionTextView = itemView.findViewById(R.id.report_emotion);
+            analysisTextView = itemView.findViewById(R.id.report_analysis);
             sessionIdTextView = itemView.findViewById(R.id.report_session_id);
             imageView = itemView.findViewById(R.id.report_image);
         }

@@ -1,32 +1,28 @@
 import os
 
-from flask import Flask, request
+from flask import Flask, request, jsonify
 
 from config import UPLOAD_FOLDER, logging, clear_upload_folder
 
-from emotiondetection import predict_emotion
+# from emotiondetection import predict_emotion
+from emotionInterpreterAPI import process_images
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-logging.basicConfig(level=logging.INFO)
+# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/processImages', methods=['POST'])
 def get_unprocessed_images():
-    clear_upload_folder()
-    if 'images' not in request.files:
-        return "No images part in the request", 400
+    if not request.is_json:
+        return "Request must be JSON", 400
 
-    files = request.files.getlist('images')
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
+    image_pairs = request.json.get('images', [])
+    logging.debug(f"Received image pairs: {image_pairs}")
+    if not image_pairs:
+        return "No image pairs provided", 400
 
-    for file in files:
-        if file.filename == '':
-            return "One or more files have no filename", 400
-        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(file_path)
-        logging.info(f"Saved image: {file_path}")
+    results = process_images(image_pairs)
+    return jsonify(results), 200
 
-    return predict_emotion(), 200
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

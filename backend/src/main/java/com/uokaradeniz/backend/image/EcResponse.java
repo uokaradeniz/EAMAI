@@ -7,5 +7,5 @@ import lombok.Setter;
 @Getter
 public class EcResponse {
     private String image;
-    private String emotion;
+    private String analysis;
 }
