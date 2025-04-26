@@ -4,6 +4,7 @@ import static androidx.core.content.ContextCompat.getColor;
 import static com.example.mobile_app.ui.api.BackendApiConfig.URL_PHYSICAL;
 import static com.example.mobile_app.ui.api.BackendApiConfig.URL_VIRTUAL;
 import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
+import static com.example.mobile_app.ui.api.BackendApiConfig.customDomain;
 import static com.example.mobile_app.ui.api.BackendApiConfig.isEmulator;
 
 import android.content.Context;
@@ -65,6 +66,7 @@ public class HomeFragment extends Fragment {
     FragmentHomeBinding viewBinding;
     PreviewView previewView;
     Switch previewSwitch;
+    Switch domainSwitch;
     ImageCapture imageCapture;
     EditText ipEditText;
     Handler handler = new Handler(Looper.getMainLooper());
@@ -91,15 +93,23 @@ public class HomeFragment extends Fragment {
         ImageButton beginButton = viewBinding.beginButton;
         previewSwitch = viewBinding.previewSwitch;
         previewSwitch.setChecked(false);
+        domainSwitch = viewBinding.domainSwitch;
+        domainSwitch.setChecked(false);
         ipEditText = viewBinding.ipEditText;
         if (isEmulator) {
             ipEditText.setVisibility(View.GONE);
             currentUrl = URL_VIRTUAL;
         } else {
-            ipEditText.setVisibility(View.VISIBLE);
-            physicalAddress = URL_PHYSICAL + ipEditText.getText().toString() + ":8080";
+            if (!customDomain) {
+                ipEditText.setVisibility(View.VISIBLE);
+                physicalAddress = URL_PHYSICAL + ipEditText.getText().toString() + ":8080";
+            } else {
+                ipEditText.setVisibility(View.GONE);
+                physicalAddress = URL_PHYSICAL + "eamai.loca.lt";
+            }
             currentUrl = physicalAddress;
         }
+
 
         beginButton.setOnClickListener(this::onBeginButtonClick);
 
@@ -110,6 +120,16 @@ public class HomeFragment extends Fragment {
                 previewView.setForeground(new ColorDrawable(getColor(requireContext(), android.R.color.black)));
             } else {
                 previewView.setForeground(null);
+            }
+        });
+
+        domainSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                customDomain = true;
+                ipEditText.setVisibility(View.GONE);
+            } else {
+                customDomain = false;
+                ipEditText.setVisibility(View.VISIBLE);
             }
         });
 
@@ -267,7 +287,11 @@ public class HomeFragment extends Fragment {
     }
 
     private void sendImagesToServer(Map<String, byte[]> images) {
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
+                .build();
 
         JSONArray imagesArray = new JSONArray();
 
@@ -300,17 +324,12 @@ public class HomeFragment extends Fragment {
         }
 
         RequestBody requestBody = RequestBody.create(payload.toString(), MediaType.parse("application/json"));
-        Request request = new Request.Builder()
-                .url(currentUrl + "/api/uploadImages")
-                .post(requestBody)
-                .build();
+        Request request = new Request.Builder().url(currentUrl + "/api/uploadImages").post(requestBody).build();
 
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-                );
+                requireActivity().runOnUiThread(() -> Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
             }
 
             @Override

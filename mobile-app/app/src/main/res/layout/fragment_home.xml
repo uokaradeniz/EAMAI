@@ -66,4 +66,15 @@
         app:layout_constraintTop_toBottomOf="@+id/timerTextView"
         app:layout_constraintVertical_bias="0.058" />
 
+    <Switch
+        android:id="@+id/domainSwitch"
+        android:layout_width="97dp"
+        android:layout_height="57dp"
+        android:layout_marginBottom="96dp"
+        android:text="Domain"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/ipEditText"
+        app:layout_constraintHorizontal_bias="0.484"
+        app:layout_constraintStart_toStartOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

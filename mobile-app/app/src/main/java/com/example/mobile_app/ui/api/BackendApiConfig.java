@@ -7,4 +7,5 @@ public class BackendApiConfig {
     public static final String URL_PHYSICAL = "http://";
     public static String currentUrl = URL_PHYSICAL;
     public static boolean isEmulator = DeviceUtils.isEmulator();
+    public static boolean customDomain = true;
 }
