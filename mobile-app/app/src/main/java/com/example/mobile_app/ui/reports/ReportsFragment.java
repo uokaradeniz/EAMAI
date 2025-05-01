@@ -20,6 +20,8 @@ import com.example.mobile_app.R;
 import com.example.mobile_app.databinding.FragmentReportsBinding;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ReportsFragment extends Fragment {
 
@@ -46,7 +48,10 @@ public class ReportsFragment extends Fragment {
     private void setupObservers() {
         reportsViewModel.getReports().observe(getViewLifecycleOwner(), reports -> {
             if (reports != null && !reports.isEmpty()) {
-                reportAdapter = new ReportAdapter(reports, report -> {
+                Map<String, List<Report>> groupedReports = reports.stream()
+                        .collect(Collectors.groupingBy(report -> report.getSessionId().toString()));
+
+                SessionAdapter sessionAdapter = new SessionAdapter(groupedReports, report -> {
                     Bundle bundle = new Bundle();
                     bundle.putString("name", report.getName());
                     bundle.putString("analysis", report.getAnalysis());
@@ -56,33 +61,14 @@ public class ReportsFragment extends Fragment {
                     NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_activity_main);
                     navController.navigate(R.id.action_reports_to_reportDetail, bundle);
                 });
+
                 binding.reportRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-                binding.reportRecyclerView.setAdapter(reportAdapter);
+                binding.reportRecyclerView.setAdapter(sessionAdapter);
             } else {
-                if (reportAdapter != null) {
-                    reportAdapter.updateReports(List.of());
-                }
                 Toast.makeText(requireContext(), "No reports found", Toast.LENGTH_SHORT).show();
             }
         });
-
-        reportsViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
-            if (isLoading != null && isLoading) {
-                Toast.makeText(requireContext(), "Loading reports...", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        reportsViewModel.getDeleteSuccess().observe(getViewLifecycleOwner(), success -> {
-            if (success != null) {
-                if (success) {
-                    Toast.makeText(requireContext(), "Reports deleted successfully", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(requireContext(), "Failed to delete reports", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
     }
-
     private void setupUI() {
         binding.deleteReportsButton.setOnClickListener(v -> {
             reportsViewModel.deleteAllReports();

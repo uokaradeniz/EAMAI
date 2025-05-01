@@ -39,7 +39,7 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
     public void onBindViewHolder(@NonNull ReportViewHolder holder, int position) {
         Report report = reportList.get(position);
         holder.nameTextView.setText("Image Name: " + report.getName());
-        holder.sessionIdTextView.setText("Session ID: " + report.getSessionId());
+//        holder.sessionIdTextView.setText("Session ID: " + report.getSessionId());
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onReportClick(report);
@@ -75,7 +75,7 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
         public ReportViewHolder(@NonNull View itemView) {
             super(itemView);
             nameTextView = itemView.findViewById(R.id.report_name);
-            sessionIdTextView = itemView.findViewById(R.id.report_session_id);
+//            sessionIdTextView = itemView.findViewById(R.id.report_session_id);
             imageView = itemView.findViewById(R.id.report_image);
         }
     }
