@@ -6,6 +6,7 @@ public class ReportJson {
     private String analysis;
     private String imageData;
     private String sessionId;
+    private String sessionDetails;
 
     public String getName() {
         return name;
@@ -37,5 +38,9 @@ public class ReportJson {
 
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
+    }
+
+    public String getSessionDetails() {
+        return sessionDetails;
     }
 }

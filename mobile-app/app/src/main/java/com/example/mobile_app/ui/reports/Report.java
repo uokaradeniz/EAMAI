@@ -13,6 +13,7 @@ public class Report {
     private String analysis;
     private byte[] imageData;
     private UUID sessionId;
+    private String sessionDetails;
 
     public String getName() {
         return name;
@@ -56,7 +57,16 @@ public class Report {
             report.setAnalysis(reportJsonObject.getAnalysis());
             report.setImageData(Base64.getDecoder().decode(reportJsonObject.getImageData()));
             report.setSessionId(UUID.fromString(reportJsonObject.getSessionId()));
+            report.setSessionDetails(reportJsonObject.getSessionDetails());
             return report;
         }).collect(Collectors.toList());
+    }
+
+    public void setSessionDetails(String sessionDetails) {
+        this.sessionDetails = sessionDetails;
+    }
+
+    public String getSessionDetails() {
+        return sessionDetails;
     }
 }

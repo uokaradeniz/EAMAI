@@ -168,7 +168,50 @@ public class ImageService {
         }
     }
 
+    public void sendProcessResultsToAIService() {
+        Map<String, List<String>> resultsBySessionId = new HashMap<>();
+
+        imageRepository.findAllByProcessStatusAndIsPhoto(true, true).forEach(image ->
+                resultsBySessionId
+                        .computeIfAbsent(String.valueOf(image.getSessionId()), _ -> new ArrayList<>())
+                        .add(image.getProcessResult())
+        );
+
+        resultsBySessionId.forEach((sessionId, processResults) -> {
+            Map<String, Object> requestPayload = new HashMap<>();
+            requestPayload.put("sessionId", sessionId);
+            requestPayload.put("results", processResults);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestPayload, headers);
+
+            String serverUrl = "http://127.0.0.1:5000/processResults";
+
+            ResponseEntity<String> response = restTemplate.postForEntity(serverUrl, requestEntity, String.class);
+
+            System.out.println("Response for sessionId " + sessionId + ": " + response.getBody());
+
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode rootNode = objectMapper.readTree(response.getBody());
+                String analysis = rootNode.get("processed_results").get(0).get("analysis").asText();
+
+                imageRepository.findAllBySessionId(UUID.fromString(sessionId)).forEach(image -> {
+                    image.setSessionDetails(analysis);
+                    imageRepository.save(image);
+                });
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Error processing JSON response", e);
+            }
+        });
+    }
+
     List<ReportResponse> prepareReportResults() {
+        if(imageRepository.existsBySessionDetailsEmpty()) {
+            sendProcessResultsToAIService();
+        }
         List<Image> images = imageRepository.findAllByProcessStatusAndIsPhoto(true, true).stream().toList();
 
         if (images.isEmpty()) {
@@ -181,6 +224,7 @@ public class ImageService {
             reportResponse.setAnalysis(image.getProcessResult());
             reportResponse.setSessionId(image.getSessionId().toString());
             reportResponse.setImageData(image.getImageData());
+            reportResponse.setSessionDetails(image.getSessionDetails());
             results.add(reportResponse);
         });
 

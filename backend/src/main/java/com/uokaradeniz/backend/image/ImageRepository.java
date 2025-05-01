@@ -15,4 +15,9 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
 
     @Query("select i from Image i where i.processStatus = ?1 and i.isPhoto = ?2")
     List<Image> findAllByProcessStatusAndIsPhoto(boolean processStatus, boolean isPhoto);
+
+    @Query("select count(i) > 0 from Image i where i.sessionDetails is null")
+    boolean existsBySessionDetailsEmpty();
+
+    List<Image> findAllBySessionId(UUID sessionId);
 }

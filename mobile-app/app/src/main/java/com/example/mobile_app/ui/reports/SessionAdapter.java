@@ -39,10 +39,11 @@ public class SessionAdapter extends RecyclerView.Adapter<SessionAdapter.SessionV
     public void onBindViewHolder(@NonNull SessionViewHolder holder, int position) {
         String sessionId = (String) sessionReportsMap.keySet().toArray()[position];
         List<Report> reports = sessionReportsMap.get(sessionId);
+        String sessionDetail = reports.get(0).getSessionDetails();
 
         holder.sessionIdTextView.setText("Session ID: " + sessionId);
+        holder.sessionDetailTextView.setText("Summary: " + sessionDetail);
 
-        // Create a compatible listener for ReportAdapter
         ReportAdapter reportAdapter = new ReportAdapter(reports, report -> listener.onReportClick(report));
         holder.reportsRecyclerView.setLayoutManager(new LinearLayoutManager(holder.itemView.getContext()));
         holder.reportsRecyclerView.setAdapter(reportAdapter);
@@ -56,10 +57,13 @@ public class SessionAdapter extends RecyclerView.Adapter<SessionAdapter.SessionV
         TextView sessionIdTextView;
         RecyclerView reportsRecyclerView;
 
+        TextView sessionDetailTextView;
+
         public SessionViewHolder(@NonNull View itemView) {
             super(itemView);
             sessionIdTextView = itemView.findViewById(R.id.session_id_text);
             reportsRecyclerView = itemView.findViewById(R.id.reports_recycler_view);
+            sessionDetailTextView = itemView.findViewById(R.id.session_detail_text);
         }
     }
 }

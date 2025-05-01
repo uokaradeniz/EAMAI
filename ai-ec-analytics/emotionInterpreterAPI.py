@@ -45,3 +45,33 @@ def process_images(json_data):
         })
 
     return results
+
+
+
+def process_results(sessionResults):
+    processed_results = []
+    try:
+        if not isinstance(sessionResults, list):
+            raise ValueError("Expected a list of results as input")
+
+        # Combine all results into a single input
+        combined_input = "\n".join(sessionResults)
+
+        # Send the combined input to the Gemini model
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                f"Analyze the following results collectively: {combined_input}. Respond concisely. No introductions. Max 5 characters"
+            ]
+        )
+
+        processed_results.append({
+            "analysis": response.text
+        })
+    except Exception as e:
+        logging.error(f"Error processing results: {e}")
+        processed_results.append({
+            "error": str(e)
+        })
+
+    return processed_results

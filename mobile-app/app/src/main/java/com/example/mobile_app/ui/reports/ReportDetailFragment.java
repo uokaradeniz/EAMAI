@@ -22,6 +22,8 @@ import androidx.navigation.Navigation;
 
 import com.example.mobile_app.R;
 
+import java.util.Objects;
+
 public class ReportDetailFragment extends Fragment {
 
     @Override
@@ -59,7 +61,9 @@ public class ReportDetailFragment extends Fragment {
 
         Bundle args = getArguments();
         if (args != null) {
-            nameText.setText("Photo: " + args.getString("name"));
+            String[] dateArray = Objects.requireNonNull(args.getString("name")).split("_")[1].split("\\.")[0].split("-");
+            String date = dateArray[0] + "-" + dateArray[1] + "-" + dateArray[2] + " " + dateArray[3] + ":" + dateArray[4];
+            nameText.setText("Date: " + date);
             analysisText.setText("Analysis: " + args.getString("analysis"));
             sessionIdText.setText("Session ID: " + args.getString("session_id"));
             byte[] imageBytes = args.getByteArray("image");

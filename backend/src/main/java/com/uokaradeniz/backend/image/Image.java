@@ -23,6 +23,7 @@ public class Image {
     private UUID sessionId;
     private UUID twinId;
     private boolean isPhoto;
+    private String sessionDetails;
 
     public Image(String originalFilename, String absolutePath, byte[] imageData, String sessionId, String twinId, boolean isPhoto) {
         this.name = originalFilename;

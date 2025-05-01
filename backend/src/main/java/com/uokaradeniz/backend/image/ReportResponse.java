@@ -10,4 +10,5 @@ public class ReportResponse {
     private String analysis;
     private String sessionId;
     private byte[] imageData;
+    private String sessionDetails;
 }

@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.mobile_app.R;
 
 import java.util.List;
+import java.util.Objects;
 
 public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportViewHolder> {
     public interface OnReportClickListener {
@@ -38,8 +39,9 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
     @Override
     public void onBindViewHolder(@NonNull ReportViewHolder holder, int position) {
         Report report = reportList.get(position);
-        holder.nameTextView.setText("Image Name: " + report.getName());
-//        holder.sessionIdTextView.setText("Session ID: " + report.getSessionId());
+        String[] dateArray = Objects.requireNonNull(report.getName().split("_")[1].split("\\.")[0].split("-"));
+        String date = dateArray[0] + "-" + dateArray[1] + "-" + dateArray[2] + " " + dateArray[3] + ":" + dateArray[4];
+        holder.nameTextView.setText("Date Taken: " + date);
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onReportClick(report);
@@ -69,13 +71,11 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
 
     static class ReportViewHolder extends RecyclerView.ViewHolder {
         TextView nameTextView;
-        TextView sessionIdTextView;
         ImageView imageView;
 
         public ReportViewHolder(@NonNull View itemView) {
             super(itemView);
             nameTextView = itemView.findViewById(R.id.report_name);
-//            sessionIdTextView = itemView.findViewById(R.id.report_session_id);
             imageView = itemView.findViewById(R.id.report_image);
         }
     }
