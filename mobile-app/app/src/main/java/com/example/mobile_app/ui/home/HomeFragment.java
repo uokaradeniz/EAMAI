@@ -1,11 +1,7 @@
 package com.example.mobile_app.ui.home;
 
 import static androidx.core.content.ContextCompat.getColor;
-import static com.example.mobile_app.ui.api.BackendApiConfig.URL_PHYSICAL;
-import static com.example.mobile_app.ui.api.BackendApiConfig.URL_VIRTUAL;
 import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
-import static com.example.mobile_app.ui.api.BackendApiConfig.customDomain;
-import static com.example.mobile_app.ui.api.BackendApiConfig.isEmulator;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -14,13 +10,10 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Switch;
 import android.widget.Toast;
@@ -66,9 +59,7 @@ public class HomeFragment extends Fragment {
     FragmentHomeBinding viewBinding;
     PreviewView previewView;
     Switch previewSwitch;
-    Switch domainSwitch;
     ImageCapture imageCapture;
-    EditText ipEditText;
     Handler handler = new Handler(Looper.getMainLooper());
 
     UUID sessionId;
@@ -81,7 +72,6 @@ public class HomeFragment extends Fragment {
     private int counter = 0;
     private Runnable timerRunnable;
     boolean maxNumOfImagesReached;
-    String physicalAddress;
 
     @Nullable
     @Override
@@ -93,23 +83,6 @@ public class HomeFragment extends Fragment {
         ImageButton beginButton = viewBinding.beginButton;
         previewSwitch = viewBinding.previewSwitch;
         previewSwitch.setChecked(false);
-        domainSwitch = viewBinding.domainSwitch;
-        domainSwitch.setChecked(false);
-        ipEditText = viewBinding.ipEditText;
-        if (isEmulator) {
-            ipEditText.setVisibility(View.GONE);
-            currentUrl = URL_VIRTUAL;
-        } else {
-            if (!customDomain) {
-                ipEditText.setVisibility(View.VISIBLE);
-                physicalAddress = URL_PHYSICAL + ipEditText.getText().toString() + ":8080";
-            } else {
-                ipEditText.setVisibility(View.GONE);
-                physicalAddress = URL_PHYSICAL + "eamai.loca.lt";
-            }
-            currentUrl = physicalAddress;
-        }
-
 
         beginButton.setOnClickListener(this::onBeginButtonClick);
 
@@ -120,32 +93,6 @@ public class HomeFragment extends Fragment {
                 previewView.setForeground(new ColorDrawable(getColor(requireContext(), android.R.color.black)));
             } else {
                 previewView.setForeground(null);
-            }
-        });
-
-        domainSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                customDomain = true;
-                ipEditText.setVisibility(View.GONE);
-            } else {
-                customDomain = false;
-                ipEditText.setVisibility(View.VISIBLE);
-            }
-        });
-
-        viewBinding.ipEditText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                physicalAddress = URL_PHYSICAL + s.toString() + ":8080";
-                currentUrl = isEmulator ? URL_VIRTUAL : physicalAddress;
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
             }
         });
 
@@ -189,7 +136,6 @@ public class HomeFragment extends Fragment {
             imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
         }
         viewBinding.previewSwitch.setEnabled(false);
-        viewBinding.ipEditText.setEnabled(false);
         startTimer();
         viewBinding.beginButton.setEnabled(false);
         viewBinding.beginButton.setBackgroundColor(getColor(requireContext(), android.R.color.darker_gray));
@@ -350,7 +296,6 @@ public class HomeFragment extends Fragment {
         viewBinding.beginButton.setEnabled(true);
         viewBinding.timerTextView.setText("Ready");
         viewBinding.previewSwitch.setEnabled(true);
-        viewBinding.ipEditText.setEnabled(true);
         previewView.setForeground(null);
         imageMapList.clear();
     }

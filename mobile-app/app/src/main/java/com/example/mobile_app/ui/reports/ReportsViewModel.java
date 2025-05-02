@@ -29,11 +29,11 @@ public class ReportsViewModel extends ViewModel {
         return isLoading;
     }
 
-    public void fetchReports(String url) {
+    public void fetchReports() {
         isLoading.postValue(true);
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
-                .url(url + "/api/reports")
+                .url(currentUrl + "/api/reports")
                 .build();
 
         client.newCall(request).enqueue(new okhttp3.Callback() {
@@ -80,7 +80,7 @@ public class ReportsViewModel extends ViewModel {
             public void onResponse(@NonNull Call call, @NonNull Response response) {
                 if (response.isSuccessful()) {
                     deleteSuccess.postValue(true);
-                    fetchReports(currentUrl);
+                    fetchReports();
                 } else {
                     deleteSuccess.postValue(false);
                 }

@@ -168,7 +168,7 @@ public class ImageService {
         }
     }
 
-    public void sendProcessResultsToAIService() {
+    private void sendProcessResultsToAIService() {
         Map<String, List<String>> resultsBySessionId = new HashMap<>();
 
         imageRepository.findAllByProcessStatusAndIsPhoto(true, true).forEach(image ->

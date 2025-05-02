@@ -39,7 +39,7 @@ public class ReportsFragment extends Fragment {
         setupUI();
 
         if (reportsViewModel.getReports().getValue() == null) {
-            reportsViewModel.fetchReports(currentUrl);
+            reportsViewModel.fetchReports();
         }
 
         return binding.getRoot();
@@ -76,7 +76,7 @@ public class ReportsFragment extends Fragment {
         });
 
         binding.refreshButton.setOnClickListener(v -> {
-            reportsViewModel.fetchReports(currentUrl);
+            reportsViewModel.fetchReports();
         });
     }
 
