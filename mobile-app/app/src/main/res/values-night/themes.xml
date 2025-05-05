@@ -11,4 +11,10 @@
         <item name="colorControlActivated">#00BCD4</item>
         <item name="backgroundReportDetail">#121212</item>
     </style>
+
+    <style name="CustomAlertDialogTheme" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
+        <item name="colorPrimary">@color/blue_500</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="android:textColorPrimary">@color/white</item>
+    </style>
 </resources>

@@ -30,8 +30,8 @@ public class ImageController {
         }
     }
     @GetMapping("/reports")
-    public ResponseEntity<?> getResults() {
-        List<ReportResponse> responseObject = imageService.prepareReportResults();
+    public ResponseEntity<?> getResults(@RequestParam Long companyId) {
+        List<ReportResponse> responseObject = imageService.prepareReportResults(companyId);
 
         return ResponseEntity.ok(responseObject);
     }

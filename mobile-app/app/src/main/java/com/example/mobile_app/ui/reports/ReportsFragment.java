@@ -1,7 +1,5 @@
 package com.example.mobile_app.ui.reports;
 
-import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
-
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;

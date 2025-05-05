@@ -1,5 +1,6 @@
 package com.example.mobile_app.ui.reports;
 
+import static com.example.mobile_app.ui.api.BackendApiConfig.companyId;
 import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
 
 import androidx.annotation.NonNull;
@@ -33,7 +34,7 @@ public class ReportsViewModel extends ViewModel {
         isLoading.postValue(true);
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
-                .url(currentUrl + "/api/reports")
+                .url(currentUrl + "/api/reports?companyId=" + companyId)
                 .build();
 
         client.newCall(request).enqueue(new okhttp3.Callback() {

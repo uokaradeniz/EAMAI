@@ -8,6 +8,7 @@ from google.genai import types
 client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
 logging.basicConfig(level=logging.INFO)
 
+
 def process_images(json_data):
     results = []
     try:
@@ -23,21 +24,21 @@ def process_images(json_data):
         if not screenshot_data or not photo_data:
             raise ValueError("Missing 'photo_data' or 'screenshot_data' in the images")
 
-        img1_bytes = base64.b64decode(photo_data)
-        img2_bytes = base64.b64decode(screenshot_data)
+        photo_bytes = base64.b64decode(photo_data)
+        screenshot_bytes = base64.b64decode(screenshot_data)
 
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=[
-                "One image is a photo and the other is a screenshot. Comment on the context, connection between the persons emotion and the user experience of the application on the screenshot. Respond concisely. No introductions. Your response must be max of 100 characters",
-                types.Part.from_bytes(data=img1_bytes, mime_type='image/jpeg'),
-                types.Part.from_bytes(data=img2_bytes, mime_type='image/jpeg')
+                f"One image is a photo and the other is a screenshot. Comment on the context, connection between the persons emotion and the user experience of the application on the screenshot. Respond concisely. No introductions. Your response must be max of 100 characters",
+                types.Part.from_bytes(data=photo_bytes, mime_type='image/jpeg'),
+                types.Part.from_bytes(data=screenshot_bytes, mime_type='image/jpeg')
             ]
         )
-
         results.append({
             "analysis": response.text
         })
+
     except Exception as e:
         logging.error(f"Error processing images: {e}")
         results.append({
@@ -47,17 +48,14 @@ def process_images(json_data):
     return results
 
 
-
 def process_results(sessionResults):
     processed_results = []
     try:
         if not isinstance(sessionResults, list):
             raise ValueError("Expected a list of results as input")
 
-        # Combine all results into a single input
         combined_input = "\n".join(sessionResults)
 
-        # Send the combined input to the Gemini model
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=[

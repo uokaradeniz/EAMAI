@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.uokaradeniz.backend.company.Company;
+import com.uokaradeniz.backend.company.CompanyRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -28,10 +30,12 @@ import java.util.*;
 public class ImageService {
     private final ImageRepository imageRepository;
     private final RestTemplate restTemplate;
+    private final CompanyRepository companyRepository;
 
-    public ImageService(ImageRepository imageRepository, RestTemplate restTemplate) {
+    public ImageService(ImageRepository imageRepository, RestTemplate restTemplate, CompanyRepository companyRepository) {
         this.imageRepository = imageRepository;
         this.restTemplate = restTemplate;
+        this.companyRepository = companyRepository;
     }
 
     public void saveImagesAndProcess(String jsonPayload) throws IOException {
@@ -46,9 +50,12 @@ public class ImageService {
         JsonNode rootNode = objectMapper.readTree(jsonPayload);
 
         UUID sessionId = UUID.fromString(rootNode.get("sessionId").asText());
+        Long companyId = rootNode.get("companyId").asLong();
 
         JsonNode imagesNode = rootNode.get("images");
         if (imagesNode.isArray()) {
+            Company company = companyRepository.findById(companyId).orElseThrow(() -> new RuntimeException("Company not found"));
+
             for (JsonNode imageNode : imagesNode) {
                 UUID twinId = UUID.fromString(imageNode.get("twinId").asText());
                 String type = imageNode.get("type").asText();
@@ -56,12 +63,10 @@ public class ImageService {
                 String data = imageNode.get("data").asText();
 
                 boolean isPhoto = "photo".equalsIgnoreCase(type);
-
                 byte[] imageData = decodeBase64(data);
-
                 byte[] compressedImageData = compressImage(imageData);
 
-                imageRepository.save(new Image(originalFilename, null, compressedImageData, sessionId.toString(), twinId.toString(), isPhoto));
+                imageRepository.save(new Image(originalFilename, null, compressedImageData, sessionId.toString(), twinId.toString(), isPhoto, company));
             }
         }
     }
@@ -168,10 +173,10 @@ public class ImageService {
         }
     }
 
-    private void sendProcessResultsToAIService() {
+    private void sendProcessResultsToAIService(Long companyId) {
         Map<String, List<String>> resultsBySessionId = new HashMap<>();
 
-        imageRepository.findAllByProcessStatusAndIsPhoto(true, true).forEach(image ->
+        imageRepository.findAllByProcessStatusAndIsPhotoAndCompanyId(true, true, companyId).forEach(image ->
                 resultsBySessionId
                         .computeIfAbsent(String.valueOf(image.getSessionId()), _ -> new ArrayList<>())
                         .add(image.getProcessResult())
@@ -208,11 +213,11 @@ public class ImageService {
         });
     }
 
-    List<ReportResponse> prepareReportResults() {
-        if(imageRepository.existsBySessionDetailsEmpty()) {
-            sendProcessResultsToAIService();
+    List<ReportResponse> prepareReportResults(Long companyId) {
+        if (imageRepository.existsBySessionDetailsEmpty()) {
+            sendProcessResultsToAIService(companyId);
         }
-        List<Image> images = imageRepository.findAllByProcessStatusAndIsPhoto(true, true).stream().toList();
+        List<Image> images = imageRepository.findAllByProcessStatusAndIsPhotoAndCompanyId(true, true, companyId).stream().toList();
 
         if (images.isEmpty()) {
             return null;

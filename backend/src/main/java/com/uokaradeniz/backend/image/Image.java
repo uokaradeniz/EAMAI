@@ -1,5 +1,6 @@
 package com.uokaradeniz.backend.image;
 
+import com.uokaradeniz.backend.company.Company;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,13 +26,17 @@ public class Image {
     private boolean isPhoto;
     private String sessionDetails;
 
-    public Image(String originalFilename, String absolutePath, byte[] imageData, String sessionId, String twinId, boolean isPhoto) {
+    @ManyToOne
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
+
+    public Image(String originalFilename, String absolutePath, byte[] imageData, String sessionId, String twinId, boolean isPhoto, Company company) {
         this.name = originalFilename;
         this.path = absolutePath;
         this.imageData = imageData;
         this.sessionId = UUID.fromString(sessionId);
         this.twinId = UUID.fromString(twinId);
         this.isPhoto = isPhoto;
+        this.company = company;
     }
 }
-
