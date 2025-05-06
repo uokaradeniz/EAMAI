@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uokaradeniz.backend.company.Company;
 import com.uokaradeniz.backend.company.CompanyRepository;
+import com.uokaradeniz.backend.report.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -181,6 +182,10 @@ public class ImageService {
                         .computeIfAbsent(String.valueOf(image.getSessionId()), _ -> new ArrayList<>())
                         .add(image.getProcessResult())
         );
+        companyRepository.findById(companyId).ifPresent(company -> {
+            company.setUsageCount(company.getUsageCount() + 1);
+            companyRepository.save(company);
+        });
 
         resultsBySessionId.forEach((sessionId, processResults) -> {
             Map<String, Object> requestPayload = new HashMap<>();
@@ -217,6 +222,7 @@ public class ImageService {
         if (imageRepository.existsBySessionDetailsEmpty()) {
             sendProcessResultsToAIService(companyId);
         }
+
         List<Image> images = imageRepository.findAllByProcessStatusAndIsPhotoAndCompanyId(true, true, companyId).stream().toList();
 
         if (images.isEmpty()) {
@@ -232,12 +238,40 @@ public class ImageService {
             reportResponse.setSessionDetails(image.getSessionDetails());
             results.add(reportResponse);
         });
+        sendReportResultsByEmail(companyId, results);
 
         return results;
     }
 
     public void deleteAllReports() {
         imageRepository.deleteAll();
+    }
+
+    public void sendReportResultsByEmail(Long companyId, List<ReportResponse> reportResults) {
+        EmailService emailService = new EmailService();
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        if (reportResults == null || reportResults.isEmpty()) {
+            throw new RuntimeException("No report results available for the company.");
+        }
+
+        StringBuilder emailContent = new StringBuilder();
+        emailContent.append("Dear ").append(company.getName()).append(" Representative,\n\n");
+        emailContent.append("Here are your report results:\n");
+        emailContent.append("Results for session: ").append(reportResults.getFirst().getSessionId()).append("\n\n");
+        emailContent.append("Session Summary Keyword: ").append(reportResults.getFirst().getSessionDetails()).append("\n");
+        emailContent.append("Total user usage count (after last session): ").append(company.getUsageCount()).append("\n\n");
+        emailContent.append("For more information, use the EAMAI app.\n");
+        emailContent.append("Best regards,\nEAMAI Service");
+
+        emailService.sendEmailWithAttachment(
+                company.getEmail(),
+                "Your Report Results",
+                emailContent.toString(),
+                null,
+                null
+        );
     }
 }
 

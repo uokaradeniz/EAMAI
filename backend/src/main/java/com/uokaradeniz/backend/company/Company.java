@@ -18,4 +18,6 @@ public class Company {
     private String apiKey;
 
     private String name;
+
+    private int usageCount;
 }
