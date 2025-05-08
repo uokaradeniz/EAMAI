@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 
 @Service
-public class PdfService {
+public class PdfGenerator {
     public byte[] generateReport(String content) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             PdfWriter writer = new PdfWriter(baos);

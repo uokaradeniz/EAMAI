@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uokaradeniz.backend.company.Company;
 import com.uokaradeniz.backend.company.CompanyRepository;
-import com.uokaradeniz.backend.report.EmailService;
+import com.uokaradeniz.backend.report.ReportService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -32,11 +32,13 @@ public class ImageService {
     private final ImageRepository imageRepository;
     private final RestTemplate restTemplate;
     private final CompanyRepository companyRepository;
+    private final ReportService reportService;
 
-    public ImageService(ImageRepository imageRepository, RestTemplate restTemplate, CompanyRepository companyRepository) {
+    public ImageService(ImageRepository imageRepository, RestTemplate restTemplate, CompanyRepository companyRepository, ReportService reportService) {
         this.imageRepository = imageRepository;
         this.restTemplate = restTemplate;
         this.companyRepository = companyRepository;
+        this.reportService = reportService;
     }
 
     public void saveImagesAndProcess(String jsonPayload) throws IOException {
@@ -218,7 +220,7 @@ public class ImageService {
         });
     }
 
-    List<ReportResponse> prepareReportResults(Long companyId) {
+    public List<ReportResponse> prepareReportResults(Long companyId) {
         if (imageRepository.existsBySessionDetailsEmpty()) {
             sendProcessResultsToAIService(companyId);
         }
@@ -228,6 +230,7 @@ public class ImageService {
         if (images.isEmpty()) {
             return null;
         }
+
         List<ReportResponse> results = new ArrayList<>();
         images.forEach(image -> {
             ReportResponse reportResponse = new ReportResponse();
@@ -238,7 +241,26 @@ public class ImageService {
             reportResponse.setSessionDetails(image.getSessionDetails());
             results.add(reportResponse);
         });
-        sendReportResultsByEmail(companyId, results);
+
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        String sessionId = images.get(0).getSessionId().toString();
+        String sessionDetails = images.get(0).getSessionDetails();
+
+        StringBuilder reportContent = new StringBuilder();
+        reportContent.append("Report Results:\n\n");
+        reportContent.append("Total Usages: ").append(company.getUsageCount()).append("\n");
+
+        results.forEach(result -> {
+            reportContent.append("Session ID: ").append(sessionId).append("\n");
+            reportContent.append("Session Details: ").append(sessionDetails).append("\n\n");
+            reportContent.append("Name: ").append(result.getName()).append("\n");
+            reportContent.append("Analysis: ").append(result.getAnalysis()).append("\n");
+            reportContent.append("--------------------------------\n\n");
+        });
+
+        reportService.sendReportAsPdf(companyId, reportContent.toString());
 
         return results;
     }
@@ -247,31 +269,5 @@ public class ImageService {
         imageRepository.deleteAll();
     }
 
-    public void sendReportResultsByEmail(Long companyId, List<ReportResponse> reportResults) {
-        EmailService emailService = new EmailService();
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Company not found"));
-
-        if (reportResults == null || reportResults.isEmpty()) {
-            throw new RuntimeException("No report results available for the company.");
-        }
-
-        StringBuilder emailContent = new StringBuilder();
-        emailContent.append("Dear ").append(company.getName()).append(" Representative,\n\n");
-        emailContent.append("Here are your report results:\n");
-        emailContent.append("Results for session: ").append(reportResults.getFirst().getSessionId()).append("\n\n");
-        emailContent.append("Session Summary Keyword: ").append(reportResults.getFirst().getSessionDetails()).append("\n");
-        emailContent.append("Total user usage count (after last session): ").append(company.getUsageCount()).append("\n\n");
-        emailContent.append("For more information, use the EAMAI app.\n");
-        emailContent.append("Best regards,\nEAMAI Service");
-
-        emailService.sendEmailWithAttachment(
-                company.getEmail(),
-                "Your Report Results",
-                emailContent.toString(),
-                null,
-                null
-        );
-    }
 }
 
