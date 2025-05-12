@@ -7,6 +7,7 @@ public class ReportJson {
     private String imageData;
     private String sessionId;
     private String sessionDetails;
+    private String twinId;
 
     public String getName() {
         return name;
@@ -42,5 +43,13 @@ public class ReportJson {
 
     public String getSessionDetails() {
         return sessionDetails;
+    }
+
+    public String getTwinId() {
+        return twinId;
+    }
+
+    public void setTwinId(String twinId) {
+        this.twinId = twinId;
     }
 }

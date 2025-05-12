@@ -239,6 +239,7 @@ public class ImageService {
             reportResponse.setSessionId(image.getSessionId().toString());
             reportResponse.setImageData(image.getImageData());
             reportResponse.setSessionDetails(image.getSessionDetails());
+            reportResponse.setTwinId(String.valueOf(image.getTwinId()));
             results.add(reportResponse);
         });
 

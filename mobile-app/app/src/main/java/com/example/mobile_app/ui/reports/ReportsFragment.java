@@ -55,6 +55,8 @@ public class ReportsFragment extends Fragment {
                     bundle.putString("analysis", report.getAnalysis());
                     bundle.putByteArray("image", report.getImageData());
                     bundle.putString("session_id", report.getSessionId().toString());
+                    bundle.putString("type", report.getType());
+                    bundle.putString("twin_id", report.getTwinId());
 
                     NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_activity_main);
                     navController.navigate(R.id.action_reports_to_reportDetail, bundle);

@@ -13,7 +13,18 @@ public class Report {
     private String analysis;
     private byte[] imageData;
     private UUID sessionId;
+    private String twinId;
     private String sessionDetails;
+    private String type; // "photo" or "screenshot"
+
+    // Add getter and setter for type
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
 
     public String getName() {
         return name;
@@ -58,6 +69,8 @@ public class Report {
             report.setImageData(Base64.getDecoder().decode(reportJsonObject.getImageData()));
             report.setSessionId(UUID.fromString(reportJsonObject.getSessionId()));
             report.setSessionDetails(reportJsonObject.getSessionDetails());
+            report.setTwinId(reportJsonObject.getTwinId());
+            report.setType(reportJsonObject.getName().split("_")[0]);
             return report;
         }).collect(Collectors.toList());
     }
@@ -68,5 +81,13 @@ public class Report {
 
     public String getSessionDetails() {
         return sessionDetails;
+    }
+
+    public String getTwinId() {
+        return twinId;
+    }
+
+    public void setTwinId(String twinId) {
+        this.twinId = twinId;
     }
 }

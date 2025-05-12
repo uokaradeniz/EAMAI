@@ -11,4 +11,5 @@ public class ReportResponse {
     private String sessionId;
     private byte[] imageData;
     private String sessionDetails;
+    private String twinId;
 }

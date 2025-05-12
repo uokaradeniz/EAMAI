@@ -11,20 +11,19 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mobile_app.R;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class SessionAdapter extends RecyclerView.Adapter<SessionAdapter.SessionViewHolder> {
+    private final List<String> sessionIds;
+    private final Map<String, List<Report>> groupedReports;
+    private final ReportAdapter.OnReportClickListener listener;
 
-    public interface OnReportClickListener {
-        void onReportClick(Report report);
-    }
-
-    private final Map<String, List<Report>> sessionReportsMap;
-    private final OnReportClickListener listener;
-
-    public SessionAdapter(Map<String, List<Report>> sessionReportsMap, OnReportClickListener listener) {
-        this.sessionReportsMap = sessionReportsMap;
+    public SessionAdapter(Map<String, List<Report>> groupedReports, ReportAdapter.OnReportClickListener listener) {
+        this.groupedReports = groupedReports;
+        this.sessionIds = new ArrayList<>(groupedReports.keySet());
         this.listener = listener;
     }
 
@@ -37,33 +36,43 @@ public class SessionAdapter extends RecyclerView.Adapter<SessionAdapter.SessionV
 
     @Override
     public void onBindViewHolder(@NonNull SessionViewHolder holder, int position) {
-        String sessionId = (String) sessionReportsMap.keySet().toArray()[position];
-        List<Report> reports = sessionReportsMap.get(sessionId);
-        String sessionDetail = reports.get(0).getSessionDetails();
+        String sessionId = sessionIds.get(position);
+        List<Report> sessionReports = groupedReports.get(sessionId);
 
-        holder.sessionIdTextView.setText("Session ID: " + sessionId);
-        holder.sessionDetailTextView.setText("Summary: " + sessionDetail);
+        // Group reports by twinId
+        Map<String, Map<String, Report>> twinIdReports = new HashMap<>();
+        for (Report report : sessionReports) {
+            String twinId = report.getTwinId();
+            if (!twinIdReports.containsKey(twinId)) {
+                twinIdReports.put(twinId, new HashMap<>());
+            }
+            twinIdReports.get(twinId).put(report.getType(), report);
+        }
 
-        ReportAdapter reportAdapter = new ReportAdapter(reports, report -> listener.onReportClick(report));
-        holder.reportsRecyclerView.setLayoutManager(new LinearLayoutManager(holder.itemView.getContext()));
-        holder.reportsRecyclerView.setAdapter(reportAdapter);
+        holder.bind(sessionId, new ArrayList<>(twinIdReports.values()), listener);
     }
+
     @Override
     public int getItemCount() {
-        return sessionReportsMap.size();
+        return sessionIds.size();
     }
 
     static class SessionViewHolder extends RecyclerView.ViewHolder {
-        TextView sessionIdTextView;
-        RecyclerView reportsRecyclerView;
+        private final TextView sessionIdText;
+        private final RecyclerView reportRecyclerView;
 
-        TextView sessionDetailTextView;
-
-        public SessionViewHolder(@NonNull View itemView) {
+        SessionViewHolder(@NonNull View itemView) {
             super(itemView);
-            sessionIdTextView = itemView.findViewById(R.id.session_id_text);
-            reportsRecyclerView = itemView.findViewById(R.id.reports_recycler_view);
-            sessionDetailTextView = itemView.findViewById(R.id.session_detail_text);
+            sessionIdText = itemView.findViewById(R.id.sessionIdText);
+            reportRecyclerView = itemView.findViewById(R.id.reportRecyclerView);
+        }
+
+        void bind(String sessionId, List<Map<String, Report>> twinReports, ReportAdapter.OnReportClickListener listener) {
+            sessionIdText.setText("Session: " + sessionId);
+
+            ImagePairAdapter adapter = new ImagePairAdapter(twinReports, listener);
+            reportRecyclerView.setLayoutManager(new LinearLayoutManager(itemView.getContext()));
+            reportRecyclerView.setAdapter(adapter);
         }
     }
 }
