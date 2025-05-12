@@ -1,0 +1,335 @@
+package com.example.mobile_app.ui.foreground;
+
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Matrix;
+import android.os.Build;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
+import android.util.Log;
+import android.util.Size;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureException;
+import androidx.camera.core.ImageProxy;
+import androidx.camera.core.Preview;
+import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LifecycleService;
+
+import com.example.mobile_app.MainActivity;
+import com.example.mobile_app.R;
+import com.google.common.util.concurrent.ListenableFuture;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+import static com.example.mobile_app.ui.api.BackendApiConfig.companyId;
+import static com.example.mobile_app.ui.api.BackendApiConfig.currentUrl;
+
+public class ForegroundCameraService extends LifecycleService {
+    private static final String TAG = "ForegroundCameraService";
+    private static final String CHANNEL_ID = "CameraServiceChannel";
+    private static final int NOTIFICATION_ID = 1;
+
+    private ProcessCameraProvider cameraProvider;
+    private ImageCapture imageCapture;
+    private Handler handler;
+    private UUID sessionId;
+    private final Map<String, byte[]> imageMapList = new HashMap<>();
+    private final int maxCaptureCount = 3;
+    private final int delayMillis = 3000;
+    private boolean isCapturing = false;
+    private ExecutorService executor;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        handler = new Handler(Looper.getMainLooper());
+        sessionId = UUID.randomUUID();
+        executor = Executors.newSingleThreadExecutor();
+
+        createNotificationChannel();
+        startForeground(NOTIFICATION_ID, createNotification("Starting camera service..."));
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        super.onStartCommand(intent, flags, startId);
+
+        if (intent != null && !isCapturing) {
+            isCapturing = true;
+            initCamera();
+        }
+
+        return START_STICKY;
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Camera Service Channel",
+                    NotificationManager.IMPORTANCE_LOW
+            );
+            channel.setDescription("Used for camera image capture operations");
+
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(channel);
+        }
+    }
+
+    private Notification createNotification(String contentText) {
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
+
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Camera Service")
+                .setContentText(contentText)
+                .setSmallIcon(R.drawable.ic_notifications_black_24dp)
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build();
+    }
+
+    private void updateNotification(String contentText) {
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NOTIFICATION_ID, createNotification(contentText));
+    }
+
+    private void initCamera() {
+        ListenableFuture<ProcessCameraProvider> cameraProviderFuture =
+                ProcessCameraProvider.getInstance(this);
+
+        cameraProviderFuture.addListener(() -> {
+            try {
+                cameraProvider = cameraProviderFuture.get();
+                bindCameraUseCase();
+
+                // Start capturing images
+                updateNotification("Capturing images...");
+                captureAndSendImages(maxCaptureCount, delayMillis);
+
+            } catch (ExecutionException | InterruptedException e) {
+                Log.e(TAG, "Error initializing camera: " + e.getMessage());
+                updateNotification("Camera initialization failed");
+                stopSelf();
+            }
+        }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void bindCameraUseCase() {
+        if (cameraProvider == null) {
+            return;
+        }
+
+        cameraProvider.unbindAll();
+
+        // Configure ImageCapture
+        imageCapture = new ImageCapture.Builder()
+                .setTargetResolution(new Size(1280, 720))
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .build();
+
+        CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
+
+        try {
+            // Bind to lifecycle
+            cameraProvider.bindToLifecycle((LifecycleOwner) this, cameraSelector, imageCapture);
+        } catch (Exception e) {
+            Log.e(TAG, "Use case binding failed", e);
+        }
+    }
+
+    private void captureAndSendImages(int count, int delayMillis) {
+        imageMapList.clear();
+        for (int i = 0; i < count; i++) {
+            handler.postDelayed(this::captureImage, (long) i * delayMillis);
+        }
+    }
+
+    private void captureImage() {
+        if (imageCapture == null) {
+            Log.e(TAG, "Cannot capture image, ImageCapture is null");
+            return;
+        }
+
+        String twinId = UUID.randomUUID().toString();
+
+        imageCapture.takePicture(ContextCompat.getMainExecutor(this),
+                new ImageCapture.OnImageCapturedCallback() {
+                    @Override
+                    public void onCaptureSuccess(@NonNull ImageProxy image) {
+                        try (image) {
+                            String timestamp = LocalDateTime.now().format(
+                                    DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
+
+                            byte[] photoData = imageToByteArray(image);
+
+                            // We don't capture screenshot in background service
+                            imageMapList.put(twinId + "_photo_" + timestamp + ".jpg", photoData);
+
+                            updateNotification("Captured " + imageMapList.size() + " of " + maxCaptureCount + " images");
+                            Log.d(TAG, "Captured photo with twinId: " + twinId);
+
+                            if (imageMapList.size() == maxCaptureCount) {
+                                updateNotification("Processing and sending images...");
+                                sendImagesToServer(imageMapList);
+                            }
+                        } catch (IOException e) {
+                            Log.e(TAG, "Error processing captured image: " + e.getMessage());
+                        }
+                    }
+
+                    @Override
+                    public void onError(@NonNull ImageCaptureException exception) {
+                        Log.e(TAG, "Image capture failed: " + exception.getMessage());
+                        updateNotification("Image capture failed");
+                    }
+                });
+    }
+
+    private byte[] imageToByteArray(ImageProxy image) throws IOException {
+        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.get(bytes);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(bytes);
+
+        return outputStream.toByteArray();
+    }
+
+    private void sendImagesToServer(Map<String, byte[]> images) {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
+                .build();
+
+        JSONArray imagesArray = new JSONArray();
+
+        for (Map.Entry<String, byte[]> entry : images.entrySet()) {
+            String originalFileName = entry.getKey();
+            String twinId = originalFileName.split("_")[0];
+            String type = originalFileName.contains("photo") ? "photo" : "screenshot";
+            String timestampAndExtension = originalFileName.split("_")[2];
+            String newFileName = type + "_" + timestampAndExtension;
+            String base64Image = android.util.Base64.encodeToString(entry.getValue(),
+                    android.util.Base64.DEFAULT);
+
+            JSONObject imageObject = new JSONObject();
+            try {
+                imageObject.put("twinId", twinId);
+                imageObject.put("type", type);
+                imageObject.put("filename", newFileName);
+                imageObject.put("data", base64Image);
+                imagesArray.put(imageObject);
+            } catch (JSONException e) {
+                Log.e(TAG, "JSON error: " + e.getMessage());
+            }
+        }
+
+        JSONObject payload = new JSONObject();
+        try {
+            payload.put("sessionId", sessionId.toString());
+            payload.put("companyId", companyId);
+            payload.put("images", imagesArray);
+        } catch (JSONException e) {
+            Log.e(TAG, "JSON error: " + e.getMessage());
+        }
+
+        RequestBody requestBody = RequestBody.create(payload.toString(),
+                MediaType.parse("application/json"));
+        Request request = new Request.Builder()
+                .url(currentUrl + "/api/uploadImages")
+                .post(requestBody)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e(TAG, "Network error: " + e.getMessage());
+                updateNotification("Failed to send images: network error");
+                stopService();
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
+                if (response.isSuccessful()) {
+                    Log.d(TAG, "Images uploaded successfully");
+                    updateNotification("Images sent successfully");
+                } else {
+                    Log.e(TAG, "Upload failed: " + response.code());
+                    updateNotification("Failed to send images: " + response.code());
+                }
+                stopService();
+            }
+        });
+    }
+
+    private void stopService() {
+        handler.post(() -> {
+            isCapturing = false;
+            imageMapList.clear();
+            if (cameraProvider != null) {
+                cameraProvider.unbindAll();
+            }
+            stopSelf();
+        });
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (executor != null) {
+            executor.shutdown();
+        }
+        if (cameraProvider != null) {
+            cameraProvider.unbindAll();
+        }
+    }
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        super.onBind(intent);
+        return null;
+    }
+}

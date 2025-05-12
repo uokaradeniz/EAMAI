@@ -7,6 +7,7 @@ import static com.example.mobile_app.ui.api.BackendApiConfig.isAuthenticated;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.drawable.ColorDrawable;
@@ -233,12 +234,13 @@ public class HomeFragment extends Fragment {
         if (imm != null) {
             imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
         }
-        viewBinding.previewSwitch.setEnabled(false);
-        startTimer();
-        viewBinding.beginButton.setEnabled(false);
-        viewBinding.beginButton.setBackgroundColor(getColor(requireContext(), android.R.color.darker_gray));
-        captureAndSendImages(maxCaptureCount, delayMillis);
-        sessionId = UUID.randomUUID();
+
+        // Start the foreground service instead of capturing images here
+        Intent serviceIntent = new Intent(requireContext(), com.example.mobile_app.ui.foreground.ForegroundCameraService.class);
+        ContextCompat.startForegroundService(requireContext(), serviceIntent);
+
+        // Optionally, close the UI or navigate back
+        Toast.makeText(requireContext(), "Image capture running in background", Toast.LENGTH_SHORT).show();
     }
 
     private void startTimer() {
