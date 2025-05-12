@@ -20,4 +20,6 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
     boolean existsBySessionDetailsEmpty();
 
     List<Image> findAllBySessionId(UUID sessionId);
+
+    List<Image> findAllByProcessStatusAndCompanyId(boolean processStatus, Long company_id);
 }

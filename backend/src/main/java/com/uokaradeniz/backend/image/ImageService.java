@@ -225,7 +225,7 @@ public class ImageService {
             sendProcessResultsToAIService(companyId);
         }
 
-        List<Image> images = imageRepository.findAllByProcessStatusAndIsPhotoAndCompanyId(true, true, companyId).stream().toList();
+        List<Image> images = imageRepository.findAllByProcessStatusAndCompanyId(true, companyId).stream().toList();
 
         if (images.isEmpty()) {
             return null;
