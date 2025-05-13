@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 public class ReportsFragment extends Fragment {
 
     private FragmentReportsBinding binding;
-    private ReportAdapter reportAdapter;
     private ReportsViewModel reportsViewModel;
 
     @Nullable
@@ -37,6 +36,7 @@ public class ReportsFragment extends Fragment {
         setupUI();
 
         if (reportsViewModel.getReports().getValue() == null) {
+            showLoading(true);
             reportsViewModel.fetchReports();
         }
 
@@ -45,7 +45,12 @@ public class ReportsFragment extends Fragment {
 
     private void setupObservers() {
         reportsViewModel.getReports().observe(getViewLifecycleOwner(), reports -> {
+            showLoading(false);
+
             if (reports != null && !reports.isEmpty()) {
+                binding.reportRecyclerView.setVisibility(View.VISIBLE);
+                binding.noReportsText.setVisibility(View.GONE);
+
                 Map<String, List<Report>> groupedReports = reports.stream()
                         .collect(Collectors.groupingBy(report -> report.getSessionId().toString()));
 
@@ -65,17 +70,33 @@ public class ReportsFragment extends Fragment {
                 binding.reportRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
                 binding.reportRecyclerView.setAdapter(sessionAdapter);
             } else {
-                Toast.makeText(requireContext(), "No reports found", Toast.LENGTH_SHORT).show();
+                binding.reportRecyclerView.setVisibility(View.GONE);
+                binding.noReportsText.setVisibility(View.VISIBLE);
+                binding.noReportsText.setText("No reports found");
             }
         });
+
+        // Observe loading state if you have one in your ViewModel
+        reportsViewModel.getIsLoading().observe(getViewLifecycleOwner(), this::showLoading);
     }
+
+    private void showLoading(boolean isLoading) {
+        if (isLoading) {
+            binding.progressBar.setVisibility(View.VISIBLE);
+            binding.reportRecyclerView.setVisibility(View.GONE);
+        } else {
+            binding.progressBar.setVisibility(View.GONE);
+        }
+    }
+
     private void setupUI() {
         binding.deleteReportsButton.setOnClickListener(v -> {
+            showLoading(true);
             reportsViewModel.deleteAllReports();
-
         });
 
         binding.refreshButton.setOnClickListener(v -> {
+            showLoading(true);
             reportsViewModel.fetchReports();
         });
     }

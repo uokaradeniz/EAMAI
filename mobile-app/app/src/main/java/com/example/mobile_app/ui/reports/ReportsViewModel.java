@@ -66,6 +66,7 @@ public class ReportsViewModel extends ViewModel {
     }
 
     public void deleteAllReports() {
+        isLoading.setValue(true);
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
                 .url(currentUrl + "/api/deleteReports")
@@ -75,6 +76,7 @@ public class ReportsViewModel extends ViewModel {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 deleteSuccess.postValue(false);
+                isLoading.setValue(false);
             }
 
             @Override
@@ -85,6 +87,7 @@ public class ReportsViewModel extends ViewModel {
                 } else {
                     deleteSuccess.postValue(false);
                 }
+                isLoading.setValue(false);
             }
         });
     }

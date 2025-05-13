@@ -4,11 +4,9 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Matrix;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -24,15 +22,12 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
 import android.view.WindowManager;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
-import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
-import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
@@ -93,8 +88,6 @@ public class ForegroundCameraService extends LifecycleService {
     private int screenDensity;
     private int screenWidth;
     private int screenHeight;
-
-    // Store projection result code and data received from activity
     private int resultCode;
     private Intent resultData;
 
@@ -106,6 +99,7 @@ public class ForegroundCameraService extends LifecycleService {
         executor = Executors.newSingleThreadExecutor();
 
         createNotificationChannel();
+        createUploadNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification("Starting camera service..."));
 
         DisplayMetrics metrics = new DisplayMetrics();
@@ -123,15 +117,12 @@ public class ForegroundCameraService extends LifecycleService {
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
 
-        // Extract projection data sent from activity
         if (intent != null) {
             if (intent.hasExtra("resultCode") && intent.hasExtra("resultData")) {
                 resultCode = intent.getIntExtra("resultCode", 0);
                 resultData = intent.getParcelableExtra("resultData");
 
-                // Initialize MediaProjection
                 if (resultCode != 0 && resultData != null) {
-                    // Call initMediaProjection instead of directly creating mediaProjection
                     initMediaProjection(resultCode, resultData);
                 }
             }
@@ -144,20 +135,19 @@ public class ForegroundCameraService extends LifecycleService {
 
         return START_STICKY;
     }
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Camera Service Channel",
-                    NotificationManager.IMPORTANCE_LOW
-            );
-            channel.setDescription("Used for camera image capture operations");
 
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(channel);
-        }
+    private void createNotificationChannel() {
+        NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                "Camera Service Channel",
+                NotificationManager.IMPORTANCE_LOW
+        );
+        channel.setDescription("Used for camera image capture operations");
+
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        manager.createNotificationChannel(channel);
     }
-    // When initializing MediaProjection in your service:
+
     private void initMediaProjection(int resultCode, Intent data) {
         MediaProjectionManager projectionManager = (MediaProjectionManager)
                 getSystemService(Context.MEDIA_PROJECTION_SERVICE);
@@ -169,7 +159,6 @@ public class ForegroundCameraService extends LifecycleService {
 
         mediaProjection = projectionManager.getMediaProjection(resultCode, data);
 
-        // Add this callback before creating the virtual display
         mediaProjection.registerCallback(new MediaProjection.Callback() {
             @Override
             public void onStop() {
@@ -181,7 +170,6 @@ public class ForegroundCameraService extends LifecycleService {
             }
         }, new Handler());
 
-        // Now create virtual display
         createVirtualDisplay();
     }
 
@@ -205,6 +193,41 @@ public class ForegroundCameraService extends LifecycleService {
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                 imageReader.getSurface(), null, null);
     }
+
+    private static final int UPLOAD_NOTIFICATION_ID = 2;
+    private static final String UPLOAD_CHANNEL_ID = "UploadNotificationChannel";
+
+    private void createUploadNotificationChannel() {
+        NotificationChannel channel = new NotificationChannel(
+                UPLOAD_CHANNEL_ID,
+                "Upload Notifications",
+                NotificationManager.IMPORTANCE_DEFAULT
+        );
+        channel.setDescription("Notifications for image upload status");
+
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        manager.createNotificationChannel(channel);
+    }
+
+    private void showUploadSuccessNotification() {
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
+
+        Notification notification = new NotificationCompat.Builder(this, UPLOAD_CHANNEL_ID)
+                .setContentTitle("Upload Complete")
+                .setContentText("Images were successfully uploaded to server")
+                .setSmallIcon(R.drawable.ic_notifications_black_24dp)
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true)
+                .build();
+
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(UPLOAD_NOTIFICATION_ID, notification);
+    }
+
     private Notification createNotification(String contentText) {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -234,7 +257,6 @@ public class ForegroundCameraService extends LifecycleService {
                 cameraProvider = cameraProviderFuture.get();
                 bindCameraUseCase();
 
-                // Start capturing images
                 updateNotification("Capturing images...");
                 captureAndSendImages(maxCaptureCount, delayMillis);
 
@@ -253,7 +275,6 @@ public class ForegroundCameraService extends LifecycleService {
 
         cameraProvider.unbindAll();
 
-        // Configure ImageCapture
         imageCapture = new ImageCapture.Builder()
                 .setTargetResolution(new Size(1280, 720))
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
@@ -262,8 +283,7 @@ public class ForegroundCameraService extends LifecycleService {
         CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
 
         try {
-            // Bind to lifecycle
-            cameraProvider.bindToLifecycle((LifecycleOwner) this, cameraSelector, imageCapture);
+            cameraProvider.bindToLifecycle(this, cameraSelector, imageCapture);
         } catch (Exception e) {
             Log.e(TAG, "Use case binding failed", e);
         }
@@ -296,7 +316,6 @@ public class ForegroundCameraService extends LifecycleService {
 
                             imageMapList.put(twinId + "_photo_" + timestamp + ".jpg", photoData);
 
-                            // Now capture a screenshot with same twinId
                             captureScreenshot(twinId);
 
                             updateNotification("Captured images: " + imageMapList.size());
@@ -305,8 +324,6 @@ public class ForegroundCameraService extends LifecycleService {
                             Log.e(TAG, "Error processing captured image: " + e.getMessage());
                         }
                     }
-
-                    // onError implementation remains the same
                 });
     }
 
@@ -317,12 +334,10 @@ public class ForegroundCameraService extends LifecycleService {
         }
 
         try {
-            // Handler for delayed screenshot capture
             Handler handler = new Handler(Looper.getMainLooper());
             handler.postDelayed(() -> {
                 try (Image image = imageReader.acquireLatestImage()) {
                     if (image != null) {
-                        // Process the image
                         byte[] screenshotData = null;
                         try {
                             screenshotData = imageToByteArray(image);
@@ -333,19 +348,17 @@ public class ForegroundCameraService extends LifecycleService {
                         String timestamp = LocalDateTime.now().format(
                                 DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
 
-                        // Store the screenshot data
                         imageMapList.put(twinId + "_screenshot_" + timestamp + ".jpg", screenshotData);
 
                         Log.d(TAG, "Captured screenshot with twinId: " + twinId);
 
-                        // Check if all images are collected
                         if (imageMapList.size() == maxCaptureCount * 2) { // Photo + screenshot
                             updateNotification("Processing and sending images...");
                             sendImagesToServer(imageMapList);
                         }
                     }
                 }
-            }, 100); // Short delay to ensure display is ready
+            }, 100);
 
         } catch (Exception e) {
             Log.e(TAG, "Error capturing screenshot: " + e.getMessage());
@@ -372,21 +385,17 @@ public class ForegroundCameraService extends LifecycleService {
             int rowStride = plane.getRowStride();
             int rowPadding = rowStride - pixelStride * screenWidth;
 
-            // Create bitmap
             Bitmap bitmap = Bitmap.createBitmap(
                     screenWidth + rowPadding / pixelStride,
                     screenHeight,
                     Bitmap.Config.ARGB_8888);
             bitmap.copyPixelsFromBuffer(buffer);
 
-            // Crop bitmap to exact screen size
             Bitmap croppedBitmap = Bitmap.createBitmap(bitmap, 0, 0, screenWidth, screenHeight);
 
-            // Convert bitmap to JPEG byte array
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream);
 
-            // Clean up
             bitmap.recycle();
             if (bitmap != croppedBitmap) {
                 croppedBitmap.recycle();
@@ -397,6 +406,7 @@ public class ForegroundCameraService extends LifecycleService {
             throw new IOException("Unsupported image format");
         }
     }
+
     private void sendImagesToServer(Map<String, byte[]> images) {
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
@@ -456,6 +466,8 @@ public class ForegroundCameraService extends LifecycleService {
                 if (response.isSuccessful()) {
                     Log.d(TAG, "Images uploaded successfully");
                     updateNotification("Images sent successfully");
+
+                    handler.post(() -> showUploadSuccessNotification());
                 } else {
                     Log.e(TAG, "Upload failed: " + response.code());
                     updateNotification("Failed to send images: " + response.code());

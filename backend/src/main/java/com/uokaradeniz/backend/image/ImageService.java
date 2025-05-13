@@ -8,6 +8,7 @@ import com.uokaradeniz.backend.company.Company;
 import com.uokaradeniz.backend.company.CompanyRepository;
 import com.uokaradeniz.backend.report.ReportService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -33,6 +34,9 @@ public class ImageService {
     private final RestTemplate restTemplate;
     private final CompanyRepository companyRepository;
     private final ReportService reportService;
+
+    @Value("${ai.service.url}")
+    private String aiServiceUrl;
 
     public ImageService(ImageRepository imageRepository, RestTemplate restTemplate, CompanyRepository companyRepository, ReportService reportService) {
         this.imageRepository = imageRepository;
@@ -148,7 +152,7 @@ public class ImageService {
 
                 HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestPayload, headers);
 
-                String serverUrl = "http://127.0.0.1:5000/processImages";
+                String serverUrl = aiServiceUrl + "/processImages";
 
                 ResponseEntity<String> response = restTemplate.postForEntity(serverUrl, requestEntity, String.class);
 
@@ -199,7 +203,7 @@ public class ImageService {
 
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestPayload, headers);
 
-            String serverUrl = "http://127.0.0.1:5000/processResults";
+            String serverUrl = aiServiceUrl + "/processResults";
 
             ResponseEntity<String> response = restTemplate.postForEntity(serverUrl, requestEntity, String.class);
 
