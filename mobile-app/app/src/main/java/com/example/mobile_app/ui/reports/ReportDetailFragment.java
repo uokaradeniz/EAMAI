@@ -22,8 +22,6 @@ import androidx.navigation.Navigation;
 
 import com.example.mobile_app.R;
 
-import java.util.Objects;
-
 public class ReportDetailFragment extends Fragment {
 
     @Override
@@ -63,29 +61,12 @@ public class ReportDetailFragment extends Fragment {
 
         Bundle args = getArguments();
         if (args != null) {
-            // Get the report type
             String type = args.getString("type", "photo");
             String reportName = args.getString("name", "");
             String twinId = args.getString("twin_id", "Unknown");
 
-            // Format date from filename
-            String date = "Unknown date";
-            if (reportName.contains("_")) {
-                try {
-                    String[] parts = reportName.split("_");
-                    if (parts.length > 1) {
-                        String[] dateArray = parts[1].split("\\.")[0].split("-");
-                        if (dateArray.length >= 5) {
-                            date = dateArray[0] + "-" + dateArray[1] + "-" + dateArray[2] + " " +
-                                    dateArray[3] + ":" + dateArray[4];
-                        }
-                    }
-                } catch (Exception e) {
-                    // Use default date if parsing fails
-                }
-            }
+            String date = getDateAsString(reportName);
 
-            // Set title based on type
             String titlePrefix = type.equals("screenshot") ? "Screenshot" : "Photo";
             titleText.setText(titlePrefix + " Details");
 
@@ -104,5 +85,25 @@ public class ReportDetailFragment extends Fragment {
             }
         }
         return view;
+    }
+
+    @NonNull
+    private static String getDateAsString(String reportName) {
+        String date = "Unknown date";
+        if (reportName.contains("_")) {
+            try {
+                String[] parts = reportName.split("_");
+                if (parts.length > 1) {
+                    String[] dateArray = parts[1].split("\\.")[0].split("-");
+                    if (dateArray.length >= 5) {
+                        date = dateArray[0] + "-" + dateArray[1] + "-" + dateArray[2] + " " +
+                                dateArray[3] + ":" + dateArray[4] + ":" + dateArray[5];
+                    }
+                }
+            } catch (Exception e) {
+                // Use default date if parsing fails
+            }
+        }
+        return date;
     }
 }

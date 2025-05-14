@@ -30,7 +30,9 @@ def process_images(json_data):
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=[
-                f"One image is a photo and the other is a screenshot. Comment on the context, connection between the persons emotion and the user experience of the application on the screenshot. Respond concisely. No introductions. Your response must be max of 100 characters",
+                f"""One image is a photo and the other is a screenshot. Comment on the context, 
+                connection between the persons emotion and the user experience of the application on the screenshot. 
+                Respond concisely. No introductions. Your response must be max of 100 characters""",
                 types.Part.from_bytes(data=photo_bytes, mime_type='image/jpeg'),
                 types.Part.from_bytes(data=screenshot_bytes, mime_type='image/jpeg')
             ]
@@ -59,7 +61,8 @@ def process_results(sessionResults):
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=[
-                f"Analyze the following results collectively: {combined_input}. Respond concisely. No introductions. Max 5 characters"
+                f"""Analyze the following results collectively: {combined_input}. Respond concisely. No introductions. 
+                Answer with only ONE of these labels: Happiness, Sadness, Anger, Fear, Surprise, Disgust, Neutral"""
             ]
         )
 

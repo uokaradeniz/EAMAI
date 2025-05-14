@@ -14,7 +14,6 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -31,7 +30,6 @@ import androidx.camera.core.ImageProxy;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
-import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LifecycleService;
 
 import com.example.mobile_app.MainActivity;
@@ -75,8 +73,8 @@ public class ForegroundCameraService extends LifecycleService {
     private Handler handler;
     private UUID sessionId;
     private final Map<String, byte[]> imageMapList = new HashMap<>();
-    private final int maxCaptureCount = 3;
-    private final int delayMillis = 3000;
+    private int maxCaptureCount = 3;
+    private int delayMillis = 3000;
     private boolean isCapturing = false;
     private ExecutorService executor;
 
@@ -130,6 +128,16 @@ public class ForegroundCameraService extends LifecycleService {
             if (!isCapturing && mediaProjection != null) {
                 isCapturing = true;
                 initCamera();
+            }
+
+            if (intent.hasExtra("maxCaptureCount")) {
+                maxCaptureCount = intent.getIntExtra("maxCaptureCount", 3);
+            }
+
+            if (intent.hasExtra("delayMillis")) {
+                // Update delayMillis from a constant to a variable that can be modified
+                // You need to change the 'final' modifier in the class field declaration
+                delayMillis = intent.getIntExtra("delayMillis", 3000);
             }
         }
 
@@ -318,7 +326,7 @@ public class ForegroundCameraService extends LifecycleService {
 
                             captureScreenshot(twinId);
 
-                            updateNotification("Captured images: " + imageMapList.size());
+                            updateNotification("Captured images: " + imageMapList.size() / 2 + "\n" + "Total images: " + maxCaptureCount);
 
                         } catch (IOException e) {
                             Log.e(TAG, "Error processing captured image: " + e.getMessage());

@@ -50,6 +50,8 @@ public class ImageService {
         JsonNode rootNode = new ObjectMapper().readTree(jsonPayload);
         String sessionId = rootNode.get("sessionId").asText();
         sendImagesToAIService(sessionId);
+        Long companyId = rootNode.get("companyId").asLong();
+        finalizeSession(companyId, sessionId);
     }
 
     void saveImages(String jsonPayload) throws IOException {
@@ -225,10 +227,6 @@ public class ImageService {
     }
 
     public List<ReportResponse> prepareReportResults(Long companyId) {
-        if (imageRepository.existsBySessionDetailsEmpty()) {
-            sendProcessResultsToAIService(companyId);
-        }
-
         List<Image> images = imageRepository.findAllByProcessStatusAndCompanyId(true, companyId).stream().toList();
 
         if (images.isEmpty()) {
@@ -247,27 +245,34 @@ public class ImageService {
             results.add(reportResponse);
         });
 
+        return results;
+    }
+
+    public void finalizeSession(Long companyId, String sessionId) {
+        List<Image> images = imageRepository.findAllBySessionIdAndCompanyId(
+                UUID.fromString(sessionId), companyId).stream().toList();
+
+        if (images.isEmpty()) {
+            throw new RuntimeException("No images found for session: " + sessionId);
+        }
+
+        if (imageRepository.existsBySessionDetailsNullAndSessionId(UUID.fromString(sessionId))) {
+            sendProcessResultsToAIService(companyId);
+        }
+
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
-        String sessionId = images.get(0).getSessionId().toString();
         String sessionDetails = images.get(0).getSessionDetails();
 
         StringBuilder reportContent = new StringBuilder();
-        reportContent.append("Report Results:\n\n");
-        reportContent.append("Total Usages: ").append(company.getUsageCount()).append("\n");
-
-        results.forEach(result -> {
-            reportContent.append("Session ID: ").append(sessionId).append("\n");
-            reportContent.append("Session Details: ").append(sessionDetails).append("\n\n");
-            reportContent.append("Name: ").append(result.getName()).append("\n");
-            reportContent.append("Analysis: ").append(result.getAnalysis()).append("\n");
-            reportContent.append("--------------------------------\n\n");
-        });
+        reportContent.append("Company: ").append(company.getName()).append("\n");
+        reportContent.append("Report Results for Session: ").append(sessionId).append("\n");
+        reportContent.append("Total User Usages: ").append(company.getUsageCount()).append("\n");
+        reportContent.append("Session Analysis Summary: ").append(sessionDetails).append("\n");
+        reportContent.append("Images in this session: ").append(images.size()).append("\n");
 
         reportService.sendReportAsPdf(companyId, reportContent.toString());
-
-        return results;
     }
 
     public void deleteAllReports() {

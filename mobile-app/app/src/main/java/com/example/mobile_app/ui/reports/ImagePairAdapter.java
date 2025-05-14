@@ -60,11 +60,15 @@ public class ImagePairAdapter extends RecyclerView.Adapter<ImagePairAdapter.Imag
             Report screenshotReport = reportPair.get("screenshot");
 
             if (photoReport != null) {
-                nameTextView.setText(photoReport.getName());
+                nameTextView.setText(getDateAsString(photoReport.getName()));
 
                 if (photoReport.getImageData() != null) {
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inSampleSize = 12;
+                    options.inPreferredConfig = Bitmap.Config.RGB_565;
+
                     Bitmap photoBitmap = BitmapFactory.decodeByteArray(
-                            photoReport.getImageData(), 0, photoReport.getImageData().length);
+                            photoReport.getImageData(), 0, photoReport.getImageData().length, options);
                     photoImageView.setImageBitmap(photoBitmap);
                 }
 
@@ -72,12 +76,36 @@ public class ImagePairAdapter extends RecyclerView.Adapter<ImagePairAdapter.Imag
             }
 
             if (screenshotReport != null && screenshotReport.getImageData() != null) {
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inSampleSize = 8;
+                options.inPreferredConfig = Bitmap.Config.RGB_565;
+
                 Bitmap screenshotBitmap = BitmapFactory.decodeByteArray(
-                        screenshotReport.getImageData(), 0, screenshotReport.getImageData().length);
+                        screenshotReport.getImageData(), 0, screenshotReport.getImageData().length, options);
                 screenshotImageView.setImageBitmap(screenshotBitmap);
 
                 screenshotImageView.setOnClickListener(v -> listener.onReportClick(screenshotReport));
             }
         }
+    }
+
+    @NonNull
+    private static String getDateAsString(String reportName) {
+        String date = "Unknown date";
+        if (reportName.contains("_")) {
+            try {
+                String[] parts = reportName.split("_");
+                if (parts.length > 1) {
+                    String[] dateArray = parts[1].split("\\.")[0].split("-");
+                    if (dateArray.length >= 5) {
+                        date = dateArray[0] + "-" + dateArray[1] + "-" + dateArray[2] + " " +
+                                dateArray[3] + ":" + dateArray[4] + ":" + dateArray[5];
+                    }
+                }
+            } catch (Exception e) {
+                // Use default date if parsing fails
+            }
+        }
+        return date;
     }
 }

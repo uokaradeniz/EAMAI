@@ -8,19 +8,19 @@
 
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
-        android:layout_width="370dp"
-        android:layout_height="481dp"
+        android:layout_width="380dp"
+        android:layout_height="372dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.487"
+        app:layout_constraintHorizontal_bias="0.483"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.324" />
+        app:layout_constraintVertical_bias="0.267" />
 
     <TextView
         android:id="@+id/timerTextView"
-        android:layout_width="307dp"
-        android:layout_height="40dp"
+        android:layout_width="305dp"
+        android:layout_height="22dp"
         android:text="Ready"
         android:textAlignment="center"
         app:layout_constraintEnd_toEndOf="parent"
@@ -51,5 +51,74 @@
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/previewView" />
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:paddingBottom="8dp"
+        android:text="Settings"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@+id/timerTextView"
+        tools:layout_editor_absoluteX="0dp" />
+
+    <LinearLayout
+        android:layout_width="409dp"
+        android:layout_height="108dp"
+        android:layout_marginBottom="36dp"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView3">
+
+        <LinearLayout
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            tools:layout_editor_absoluteX="409dp"
+            tools:layout_editor_absoluteY="554dp">
+
+            <TextView
+                android:id="@+id/delayText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Delay: 3000ms" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/delaySlider"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stepSize="1000"
+                android:valueFrom="3000"
+                android:valueTo="10000" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="100dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/captureCountText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Capture Count: 3" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/captureCountSlider"
+                android:layout_width="116dp"
+                android:layout_height="wrap_content"
+                android:stepSize="2"
+                android:valueFrom="3"
+                android:valueTo="13" />
+        </LinearLayout>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

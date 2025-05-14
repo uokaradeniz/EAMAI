@@ -2,6 +2,8 @@ package com.example.mobile_app.ui.reports;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +17,8 @@ import com.example.mobile_app.R;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportViewHolder> {
     public interface OnReportClickListener {
@@ -23,6 +27,8 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
 
     private final List<Report> reportList;
     private final OnReportClickListener listener;
+    private final ExecutorService executorService = Executors.newFixedThreadPool(3);
+
 
     public ReportAdapter(List<Report> reportList, OnReportClickListener listener) {
         this.reportList = reportList;
@@ -40,7 +46,7 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
     public void onBindViewHolder(@NonNull ReportViewHolder holder, int position) {
         Report report = reportList.get(position);
         String[] dateArray = Objects.requireNonNull(report.getName().split("_")[1].split("\\.")[0].split("-"));
-        String date = dateArray[0] + "-" + dateArray[1] + "-" + dateArray[2] + " " + dateArray[3] + ":" + dateArray[4];
+        String date = dateArray[0] + "-" + dateArray[1] + "-" + dateArray[2] + " " + dateArray[3] + ":" + dateArray[4] + ":" + dateArray[5];
         holder.nameTextView.setText("Date Taken: " + date);
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
@@ -48,14 +54,34 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
             }
         });
 
-        byte[] imageBytes = report.getImageData();
-        if (imageBytes != null && imageBytes.length > 0) {
-            Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
-            Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, 110, 94, true);
-            holder.imageView.setImageBitmap(scaledBitmap);
+        if (report.getImageData() != null && report.getImageData().length > 0) {
+            executorService.execute(() -> {
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inSampleSize = 8;
+                options.inPreferredConfig = Bitmap.Config.RGB_565;
+
+                final Bitmap bitmap = BitmapFactory.decodeByteArray(
+                        report.getImageData(),
+                        0,
+                        report.getImageData().length,
+                        options
+                );
+
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (holder.getAdapterPosition() == position) {
+                        holder.imageView.setImageBitmap(bitmap);
+                    }
+                });
+            });
         } else {
             holder.imageView.setImageResource(R.drawable.ic_launcher_foreground);
         }
+    }
+
+    @Override
+    public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView);
+        executorService.shutdown();
     }
 
     public void updateReports(List<Report> newReports) {
@@ -79,4 +105,6 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
             imageView = itemView.findViewById(R.id.report_image);
         }
     }
+
+
 }

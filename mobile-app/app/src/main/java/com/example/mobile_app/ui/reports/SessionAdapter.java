@@ -38,8 +38,8 @@ public class SessionAdapter extends RecyclerView.Adapter<SessionAdapter.SessionV
     public void onBindViewHolder(@NonNull SessionViewHolder holder, int position) {
         String sessionId = sessionIds.get(position);
         List<Report> sessionReports = groupedReports.get(sessionId);
+        String sessionSummary = sessionReports.get(position).getSessionDetails();
 
-        // Group reports by twinId
         Map<String, Map<String, Report>> twinIdReports = new HashMap<>();
         for (Report report : sessionReports) {
             String twinId = report.getTwinId();
@@ -49,7 +49,7 @@ public class SessionAdapter extends RecyclerView.Adapter<SessionAdapter.SessionV
             twinIdReports.get(twinId).put(report.getType(), report);
         }
 
-        holder.bind(sessionId, new ArrayList<>(twinIdReports.values()), listener);
+        holder.bind(sessionId, sessionSummary,new ArrayList<>(twinIdReports.values()), listener);
     }
 
     @Override
@@ -59,17 +59,20 @@ public class SessionAdapter extends RecyclerView.Adapter<SessionAdapter.SessionV
 
     static class SessionViewHolder extends RecyclerView.ViewHolder {
         private final TextView sessionIdText;
+        private final TextView sessionSummaryText;
+
         private final RecyclerView reportRecyclerView;
 
         SessionViewHolder(@NonNull View itemView) {
             super(itemView);
             sessionIdText = itemView.findViewById(R.id.sessionIdText);
+            sessionSummaryText = itemView.findViewById(R.id.sessionSummaryText);
             reportRecyclerView = itemView.findViewById(R.id.reportRecyclerView);
         }
 
-        void bind(String sessionId, List<Map<String, Report>> twinReports, ReportAdapter.OnReportClickListener listener) {
+        void bind(String sessionId, String sessionSummary,List<Map<String, Report>> twinReports, ReportAdapter.OnReportClickListener listener) {
             sessionIdText.setText("Session: " + sessionId);
-
+            sessionSummaryText.setText("Summary: " + sessionSummary);
             ImagePairAdapter adapter = new ImagePairAdapter(twinReports, listener);
             reportRecyclerView.setLayoutManager(new LinearLayoutManager(itemView.getContext()));
             reportRecyclerView.setAdapter(adapter);

@@ -24,6 +24,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -40,6 +41,7 @@ import androidx.fragment.app.Fragment;
 
 import com.example.mobile_app.R;
 import com.example.mobile_app.databinding.FragmentHomeBinding;
+import com.google.android.material.slider.Slider;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.json.JSONArray;
@@ -74,13 +76,22 @@ public class HomeFragment extends Fragment {
     ImageCapture imageCapture;
     Handler handler = new Handler(Looper.getMainLooper());
     UUID sessionId;
-    int delayMillis = 3000;
     private final Map<String, byte[]> imageMapList = new HashMap<>();
-    private final int maxCaptureCount = 3;
+    private int maxCaptureCount = 3;
     private int counter = 0;
     private Runnable timerRunnable;
     boolean maxNumOfImagesReached;
     ImageButton beginButton;
+    private static final int REQUEST_MEDIA_PROJECTION = 100;
+    private int resultCode;
+    private Intent resultData;
+    private boolean hasProjectionPermission = false;
+
+    private Slider captureCountSlider;
+    private Slider delaySlider;
+    private TextView captureCountText;
+    private TextView delayText;
+    private int delayMillis = 3000;
 
     @Nullable
     @Override
@@ -92,6 +103,17 @@ public class HomeFragment extends Fragment {
         beginButton = viewBinding.beginButton;
         previewSwitch = viewBinding.previewSwitch;
 
+        captureCountSlider = viewBinding.captureCountSlider;
+        delaySlider = viewBinding.delaySlider;
+        captureCountText = viewBinding.captureCountText;
+        delayText = viewBinding.delayText;
+
+        // Set initial values
+        captureCountSlider.setValue(maxCaptureCount);
+        delaySlider.setValue(delayMillis);
+
+        // Set up slider listeners
+        setupSliderListeners();
         if (!isAuthenticated) {
             beginButton.setEnabled(false);
             showCompanyKeyDialog();
@@ -102,6 +124,27 @@ public class HomeFragment extends Fragment {
         requestMediaProjectionPermission();
 
         return root;
+    }
+
+    private void setupSliderListeners() {
+        // Capture count slider (only odd numbers)
+        captureCountSlider.addOnChangeListener((slider, value, fromUser) -> {
+            // Ensure we always have an odd number (1, 3, 5, 7, 9, 11)
+            int oddValue = (int) value;
+            if (oddValue % 2 == 0) {
+                oddValue = Math.max(1, oddValue - 1); // Convert to previous odd number
+                slider.setValue(oddValue); // This will trigger the listener again, but with the correct value
+            } else {
+                maxCaptureCount = oddValue;
+                captureCountText.setText("Capture Count: " + maxCaptureCount);
+            }
+        });
+
+        // Delay slider
+        delaySlider.addOnChangeListener((slider, value, fromUser) -> {
+            delayMillis = (int) value;
+            delayText.setText("Delay: " + delayMillis + "ms");
+        });
     }
     private void requestMediaProjectionPermission() {
         MediaProjectionManager projectionManager = (MediaProjectionManager)
@@ -234,10 +277,6 @@ public class HomeFragment extends Fragment {
         viewBinding = null;
     }
 
-    private static final int REQUEST_MEDIA_PROJECTION = 100;
-    private int resultCode;
-    private Intent resultData;
-    private boolean hasProjectionPermission = false;
     public void onBeginButtonClick(View v) {
         InputMethodManager imm = (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm != null) {
@@ -245,20 +284,23 @@ public class HomeFragment extends Fragment {
         }
 
         if (hasProjectionPermission && resultData != null) {
-            // Start the foreground service with saved projection data
             Intent serviceIntent = new Intent(requireContext(), com.example.mobile_app.ui.foreground.ForegroundCameraService.class);
             serviceIntent.putExtra("resultCode", resultCode);
             serviceIntent.putExtra("resultData", resultData);
+            serviceIntent.putExtra("maxCaptureCount", maxCaptureCount);
+            serviceIntent.putExtra("delayMillis", delayMillis);
             ContextCompat.startForegroundService(requireContext(), serviceIntent);
 
-            Toast.makeText(requireContext(), "Image capture running in background", Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(requireContext(),
+                    "Starting capture: " + maxCaptureCount + " images with " + delayMillis + "ms delay",
+                    Toast.LENGTH_SHORT).show();
 
             Intent startMain = new Intent(Intent.ACTION_MAIN);
             startMain.addCategory(Intent.CATEGORY_HOME);
             startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             requireContext().startActivity(startMain);
         } else {
-            // Permission not granted yet, request it again
             requestMediaProjectionPermission();
         }
     }
@@ -266,7 +308,6 @@ public class HomeFragment extends Fragment {
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (requestCode == REQUEST_MEDIA_PROJECTION && resultCode == android.app.Activity.RESULT_OK && data != null) {
-            // Store permission data for later use
             this.resultCode = resultCode;
             this.resultData = data;
             hasProjectionPermission = true;
