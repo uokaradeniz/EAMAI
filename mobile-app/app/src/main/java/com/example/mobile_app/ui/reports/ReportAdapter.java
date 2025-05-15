@@ -57,7 +57,7 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
         if (report.getImageData() != null && report.getImageData().length > 0) {
             executorService.execute(() -> {
                 BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inSampleSize = 8;
+                options.inSampleSize = 4;
                 options.inPreferredConfig = Bitmap.Config.RGB_565;
 
                 final Bitmap bitmap = BitmapFactory.decodeByteArray(

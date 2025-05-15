@@ -64,7 +64,7 @@ public class ImagePairAdapter extends RecyclerView.Adapter<ImagePairAdapter.Imag
 
                 if (photoReport.getImageData() != null) {
                     BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inSampleSize = 12;
+                    options.inSampleSize = 8;
                     options.inPreferredConfig = Bitmap.Config.RGB_565;
 
                     Bitmap photoBitmap = BitmapFactory.decodeByteArray(
@@ -77,7 +77,7 @@ public class ImagePairAdapter extends RecyclerView.Adapter<ImagePairAdapter.Imag
 
             if (screenshotReport != null && screenshotReport.getImageData() != null) {
                 BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inSampleSize = 8;
+                options.inSampleSize = 4;
                 options.inPreferredConfig = Bitmap.Config.RGB_565;
 
                 Bitmap screenshotBitmap = BitmapFactory.decodeByteArray(

