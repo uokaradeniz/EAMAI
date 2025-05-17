@@ -1,0 +1,44 @@
+services:
+  ai-ec-analytics:
+    build:
+      context: ./ai-ec-analytics
+      dockerfile: Dockerfile
+    container_name: ai-ec-analytics
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - GEMINI_API_KEY=AIzaSyBG69TUAge81PLeUmJ1AOTas0Rj5U3FDS8
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://eamai-db:5432/eamai
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=oguz
+      - GMAIL_PASSWORD=kfng mdwq yurc ipuk
+      - GMAIL_USER=uokaradeniz@gmail.com
+    container_name: backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15
+    container_name: eamai-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: oguz
+      POSTGRES_DB: eamai
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

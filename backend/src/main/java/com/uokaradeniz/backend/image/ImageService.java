@@ -118,7 +118,7 @@ public class ImageService {
 
         Map<UUID, Queue<Image>> imagesByTwinId = new HashMap<>();
         for (Image image : images) {
-            imagesByTwinId.computeIfAbsent(image.getTwinId(), _ -> new LinkedList<>()).add(image);
+            imagesByTwinId.computeIfAbsent(image.getTwinId(), i -> new LinkedList<>()).add(image);
         }
 
         for (Map.Entry<UUID, Queue<Image>> entry : imagesByTwinId.entrySet()) {
@@ -187,7 +187,7 @@ public class ImageService {
 
         imageRepository.findAllByProcessStatusAndIsPhotoAndCompanyId(true, true, companyId).forEach(image ->
                 resultsBySessionId
-                        .computeIfAbsent(String.valueOf(image.getSessionId()), _ -> new ArrayList<>())
+                        .computeIfAbsent(String.valueOf(image.getSessionId()), i -> new ArrayList<>())
                         .add(image.getProcessResult())
         );
         companyRepository.findById(companyId).ifPresent(company -> {
@@ -263,15 +263,33 @@ public class ImageService {
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
-        String sessionDetails = images.get(0).getSessionDetails();
+        String currentSessionDetails = images.get(0).getSessionDetails();
+        Map<String, Integer> sessionSummaryCount = new HashMap<>();
+        sessionSummaryCount.put(currentSessionDetails, 1);
+
+        List<Image> allCompanyImages = imageRepository.findAllByProcessStatusAndCompanyId(true, companyId);
+
+        for (Image image : allCompanyImages) {
+            if (image.getSessionDetails() != null && !image.getSessionId().equals(UUID.fromString(sessionId))) {
+                String details = image.getSessionDetails();
+                sessionSummaryCount.put(details, sessionSummaryCount.getOrDefault(details, 0) + 1);
+            }
+        }
 
         StringBuilder reportContent = new StringBuilder();
         reportContent.append("Company: ").append(company.getName()).append("\n");
-        reportContent.append("Report Results for Session: ").append(sessionId).append("\n");
-        reportContent.append("Total User Usages: ").append(company.getUsageCount()).append("\n");
-        reportContent.append("Session Analysis Summary: ").append(sessionDetails).append("\n");
+        reportContent.append("REPORT RESULTS FOR SESSION: ").append(sessionId).append("\n");
         reportContent.append("Images in this session: ").append(images.size()).append("\n");
+        reportContent.append("Total User Usages: ").append(company.getUsageCount()).append("\n");
+        reportContent.append("Session Analysis Summary: ").append(currentSessionDetails).append("\n");
 
+        reportContent.append("SUMMARY OF COMPANY RESULTS:\n");
+        sessionSummaryCount.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .forEach(entry -> {
+                    reportContent.append("- Found ").append(entry.getValue())
+                            .append(" times: ").append(entry.getKey()).append("\n\n");
+                });
         reportService.sendReportAsPdf(companyId, reportContent.toString());
     }
 

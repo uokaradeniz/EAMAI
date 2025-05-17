@@ -75,7 +75,7 @@ public class ForegroundCameraService extends LifecycleService {
     private UUID sessionId;
     private final Map<String, byte[]> imageMapList = new HashMap<>();
     private int maxCaptureCount = 3;
-    private int delayMillis = 3000;
+    private int delayMillis = 5000;
     private boolean isCapturing = false;
     private ExecutorService executor;
 
