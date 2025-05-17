@@ -102,7 +102,7 @@ public class ImageService {
         ImageWriteParam param = writer.getDefaultWriteParam();
         if (param.canWriteCompressed()) {
             param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-            param.setCompressionQuality(0.3f);
+            param.setCompressionQuality(0.5f);
         }
 
         writer.write(null, new IIOImage(bufferedImage, null, null), param);
