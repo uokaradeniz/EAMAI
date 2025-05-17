@@ -8,8 +8,8 @@
 
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
-        android:layout_width="380dp"
-        android:layout_height="372dp"
+        android:layout_width="378dp"
+        android:layout_height="419dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.483"
@@ -52,73 +52,80 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/previewView" />
 
-    <TextView
-        android:id="@+id/textView3"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginTop="4dp"
-        android:paddingBottom="8dp"
-        android:text="Settings"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@+id/timerTextView"
-        tools:layout_editor_absoluteX="0dp" />
-
     <LinearLayout
-        android:layout_width="409dp"
-        android:layout_height="108dp"
-        android:layout_marginHorizontal="10dp"
-        android:layout_marginBottom="36dp"
-        android:orientation="horizontal"
-        android:padding="16dp"
+        android:layout_width="411dp"
+        android:layout_height="149dp"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/previewView"
-        app:layout_constraintVertical_bias="0.638">
+        app:layout_constraintVertical_bias="0.561">
+
+        <TextView
+            android:id="@+id/textView3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="4dp"
+            android:paddingBottom="8dp"
+            android:text="Settings"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
         <LinearLayout
-            android:layout_width="150dp"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            tools:layout_editor_absoluteX="409dp"
-            tools:layout_editor_absoluteY="554dp">
+            android:id="@+id/linearLayout"
+            android:layout_width="409dp"
+            android:layout_height="126dp"
+            android:layout_marginHorizontal="10dp"
+            android:layout_marginBottom="36dp"
+            android:orientation="horizontal"
+            android:padding="16dp">
 
-            <TextView
-                android:id="@+id/delayText"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="150dp"
                 android:layout_height="wrap_content"
-                android:text="Delay: 5000ms" />
+                android:orientation="vertical"
+                tools:layout_editor_absoluteX="409dp"
+                tools:layout_editor_absoluteY="554dp">
 
-            <com.google.android.material.slider.Slider
-                android:id="@+id/delaySlider"
-                android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/delayText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Delay: 3000ms" />
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/delaySlider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:stepSize="1000"
+                    android:valueFrom="3000"
+                    android:valueTo="15000" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="120dp"
                 android:layout_height="wrap_content"
-                android:stepSize="1000"
-                android:valueFrom="2000"
-                android:valueTo="15000" />
-        </LinearLayout>
+                android:layout_marginLeft="100dp"
+                android:orientation="vertical">
 
-        <LinearLayout
-            android:layout_width="120dp"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="100dp"
-            android:orientation="vertical">
+                <TextView
+                    android:id="@+id/captureCountText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Capture Count: 3" />
 
-            <TextView
-                android:id="@+id/captureCountText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Capture Count: 3" />
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/captureCountSlider"
+                    android:layout_width="116dp"
+                    android:layout_height="wrap_content"
+                    android:stepSize="2"
+                    android:valueFrom="3"
+                    android:valueTo="15" />
+            </LinearLayout>
 
-            <com.google.android.material.slider.Slider
-                android:id="@+id/captureCountSlider"
-                android:layout_width="116dp"
-                android:layout_height="wrap_content"
-                android:stepSize="2"
-                android:valueFrom="3"
-                android:valueTo="15" />
         </LinearLayout>
 
     </LinearLayout>

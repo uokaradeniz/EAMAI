@@ -11,6 +11,7 @@ services:
       - GEMINI_API_KEY=AIzaSyBG69TUAge81PLeUmJ1AOTas0Rj5U3FDS8
     depends_on:
       - backend
+    restart: unless-stopped
 
   backend:
     build:
@@ -22,23 +23,26 @@ services:
       - SPRING_DATASOURCE_PASSWORD=oguz
       - GMAIL_PASSWORD=kfng mdwq yurc ipuk
       - GMAIL_USER=uokaradeniz@gmail.com
+      - AI_SERVICE_URL=http://ai-ec-analytics:5000
     container_name: backend
     ports:
       - "8080:8080"
     depends_on:
       - postgres
+    restart: unless-stopped
 
   postgres:
     image: postgres:15
     container_name: eamai-db
     ports:
-      - "5432:5432"
+      - "5434:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: oguz
       POSTGRES_DB: eamai
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
 
 volumes:
   postgres-data:

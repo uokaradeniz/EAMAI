@@ -136,8 +136,6 @@ public class ForegroundCameraService extends LifecycleService {
             }
 
             if (intent.hasExtra("delayMillis")) {
-                // Update delayMillis from a constant to a variable that can be modified
-                // You need to change the 'final' modifier in the class field declaration
                 delayMillis = intent.getIntExtra("delayMillis", 3000);
             }
         }
@@ -322,7 +320,7 @@ public class ForegroundCameraService extends LifecycleService {
                                     DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
 
                             byte[] photoData = imageToByteArray(image);
-                            photoData = compressImage(photoData, 50);
+                            photoData = compressImage(photoData, 60);
 
                             imageMapList.put(twinId + "_photo_" + timestamp + ".jpg", photoData);
 
@@ -351,7 +349,7 @@ public class ForegroundCameraService extends LifecycleService {
                         byte[] screenshotData = null;
                         try {
                             screenshotData = imageToByteArray(image);
-                            screenshotData = compressImage(screenshotData, 50);
+                            screenshotData = compressImage(screenshotData, 60);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }

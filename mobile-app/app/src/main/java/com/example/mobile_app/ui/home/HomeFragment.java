@@ -127,13 +127,11 @@ public class HomeFragment extends Fragment {
     }
 
     private void setupSliderListeners() {
-        // Capture count slider (only odd numbers)
         captureCountSlider.addOnChangeListener((slider, value, fromUser) -> {
-            // Ensure we always have an odd number (1, 3, 5, 7, 9, 11)
             int oddValue = (int) value;
             if (oddValue % 2 == 0) {
-                oddValue = Math.max(1, oddValue - 1); // Convert to previous odd number
-                slider.setValue(oddValue); // This will trigger the listener again, but with the correct value
+                oddValue = Math.max(1, oddValue - 1);
+                slider.setValue(oddValue);
             } else {
                 maxCaptureCount = oddValue;
                 captureCountText.setText("Capture Count: " + maxCaptureCount);
