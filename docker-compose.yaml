@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   ai-ec-analytics:
     build:
@@ -7,8 +9,8 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - FLASK_ENV=development
-      - GEMINI_API_KEY=AIzaSyBG69TUAge81PLeUmJ1AOTas0Rj5U3FDS8
+      - FLASK_ENV=${FLASK_ENV}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - backend
     restart: unless-stopped
@@ -17,16 +19,16 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://eamai-db:5432/eamai
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=oguz
-      - GMAIL_PASSWORD=kfng mdwq yurc ipuk
-      - GMAIL_USER=uokaradeniz@gmail.com
-      - AI_SERVICE_URL=http://ai-ec-analytics:5000
     container_name: backend
     ports:
       - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - GMAIL_PASSWORD=${GMAIL_PASSWORD}
+      - GMAIL_USER=${GMAIL_USER}
+      - AI_SERVICE_URL=${AI_SERVICE_URL}
     depends_on:
       - postgres
     restart: unless-stopped
@@ -37,9 +39,9 @@ services:
     ports:
       - "5434:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: oguz
-      POSTGRES_DB: eamai
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped

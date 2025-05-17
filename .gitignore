@@ -1,25 +1,23 @@
-# Genel Ignore Kuralları
 .DS_Store
 Thumbs.db
 *.log
 
-# Python Projesi İçin (ai-ec-analytics/)
 ai-ec-analytics/__pycache__/
 ai-ec-analytics/.venv/
 ai-ec-analytics/.mypy_cache/
 ai-ec-analytics/images/
 
-# Java Spring Boot İçin (backend/)
 backend/target/
 backend/.mvn/
 backend/mvnw*
 backend/*.log
 backend/resources/images/
 
-# Android Projesi İçin (mobile-app/)
 mobile-app/.gradle/
 mobile-app/.idea/
 mobile-app/app/build/
 mobile-app/local.properties
 mobile-app/gradle/wrapper/gradle-wrapper.jar
 mobile-app/app/src/main/res/mipmap-*/ic_launcher*
+
+.env
