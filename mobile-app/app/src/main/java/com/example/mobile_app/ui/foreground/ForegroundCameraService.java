@@ -306,6 +306,7 @@ public class ForegroundCameraService extends LifecycleService {
     private void captureImage() {
         if (imageCapture == null) {
             Log.e(TAG, "Cannot capture image, ImageCapture is null");
+            stopService();
             return;
         }
 

@@ -25,6 +25,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.util.*;
 
 @Service
@@ -276,21 +277,22 @@ public class ImageService {
             }
         }
 
+        Map<String, Integer> companiesUsages = new HashMap<>();
+        companyRepository.findAll().forEach(c -> {
+            companiesUsages.put(c.getName(), c.getUsageCount());
+        });
+
         StringBuilder reportContent = new StringBuilder();
         reportContent.append("Company: ").append(company.getName()).append("\n");
         reportContent.append("REPORT RESULTS FOR SESSION: ").append(sessionId).append("\n");
         reportContent.append("Images in this session: ").append(images.size()).append("\n");
         reportContent.append("Total User Usages: ").append(company.getUsageCount()).append("\n");
         reportContent.append("Session Analysis Summary: ").append(currentSessionDetails).append("\n");
-
-        reportContent.append("SUMMARY OF COMPANY RESULTS:\n");
-        sessionSummaryCount.entrySet().stream()
-                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                .forEach(entry -> {
-                    reportContent.append("- Found ").append(entry.getValue())
-                            .append(" times: ").append(entry.getKey()).append("\n\n");
-                });
-        reportService.sendReportAsPdf(companyId, reportContent.toString());
+        reportContent.append("______________________________________________________________________________\n");
+        BufferedImage sessionResultsImage = reportService.createCompanyResultsBarChart(sessionSummaryCount);
+        BufferedImage companyUsagesImage = reportService.createCompanyUsagePieChart(companiesUsages);
+        BufferedImage[] chartsArray = {sessionResultsImage, companyUsagesImage};
+        reportService.sendReportAsPdf(companyId, reportContent.toString(), chartsArray);
     }
 
     public void deleteAllReports() {
