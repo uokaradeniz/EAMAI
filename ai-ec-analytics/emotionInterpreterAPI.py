@@ -33,7 +33,7 @@ def process_images(json_data):
                 f"""One image is a photo and the other is a screenshot.
                 Based on the person's emotion in the photo, always infer and comment on the 
                 user experience of the application shown in the screenshot, even if the connection is unclear.
-                Respond concisely (max 50 characters). Do not say 'no relationship' or similar. No introductions or extra commentary.""",
+                Respond concisely (max 120 characters). Do not say 'no relationship' or similar. No introductions or extra commentary.""",
                 types.Part.from_bytes(data=photo_bytes, mime_type='image/jpeg'),
                 types.Part.from_bytes(data=screenshot_bytes, mime_type='image/jpeg')
             ]
